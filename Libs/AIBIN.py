@@ -149,7 +149,8 @@ class AIBIN:
 		'AskForHelpWhenInTrouble',
 		'WatchAlliesUnknown',
 		'TryTownpointUnknown',
-		'IfTowns',
+		'AttackTo',
+		'AttackTimeout',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -265,7 +266,8 @@ class AIBIN:
 		'help_iftrouble',     #0x6E - 110
 		'allies_watch',       #0x6F - 111
 		'try_townpoint',      #0x70 - 112
-		'if_towns',           #0x71 - 113
+		'attack_to',          #0x71 - 113
+		'attack_timeout',     #0x72 - 114
 	]
 
 	separate = [
@@ -440,7 +442,8 @@ class AIBIN:
 			None, # help_iftrouble
 			[self.ai_byte, self.ai_address], # allies_watch
 			[self.ai_byte, self.ai_address], # try_townpoint
-			None, # if_towns
+			[self.ai_word, self.ai_word, self.ai_word, self.ai_word], # attack_to
+			[self.ai_dword], # attack_timeout
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -785,7 +788,7 @@ class AIBIN:
 		v = self.ai_unit(data, stage)
 		if stage == 3:
 			flags = self.unitsdat.get_value(v[1],'SpecialAbilityFlags')
-			if not flags & 8 and not flags & 1 and v[1] != 42: 
+			if not flags & 8 and not flags & 1 and v[1] != 42:
 				raise PyMSWarning('Parameter','Unit is not a building, worker, or Overlord', extra=v, level=1, id='building')
 		return v
 
@@ -1051,7 +1054,7 @@ class AIBIN:
 		if defs:
 			if isstr(defs):
 				defs = defs.split(',')
-			
+
 			for deffile in defs:
 				load_defs(deffile)
 		for data in alldata:
@@ -1242,7 +1245,7 @@ class AIBIN:
 													if cid in default_ais:
 														cid = default_ais[cid]
 													elif len(cid) != 4:
-														raise PyMSError('Interpreting',"Invalid AI ID '%s' (must be 4 characeters long, or one of the keywords: Protoss, BWProtoss, Terran, BWTerran, Zerg, BWZerg)" % cid,n,line, warnings=warnings) 
+														raise PyMSError('Interpreting',"Invalid AI ID '%s' (must be 4 characeters long, or one of the keywords: Protoss, BWProtoss, Terran, BWTerran, Zerg, BWZerg)" % cid,n,line, warnings=warnings)
 													elif re.match('[\x00:(),]',cid):
 														raise PyMSError('Interpreting',"Invalid AI ID '%s', it can not contain a null byte, or the characters: , ( ) :" % cid,n,line, warnings=warnings)
 													if re.match('[\x00:(),]',label):
@@ -2196,7 +2199,7 @@ class BWBIN(AIBIN):
 	# gwarnings.extend(b.interpret('test.txt'))
 	# a.compile('aitest.bin','bwtest.bin')
 	# print time.time() - t
-	
+
 	# a = AIBIN('bw.bin')
 	# gwarnings.extend(a.load_file('ai.bin'))
 	# gwarnings.extend(a.decompile('aitestd.txt'))
