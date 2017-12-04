@@ -151,6 +151,7 @@ class AIBIN:
 		'TryTownpointUnknown',
 		'AttackTo',
 		'AttackTimeout',
+		'IssueOrder',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -268,6 +269,7 @@ class AIBIN:
 		'try_townpoint',      #0x70 - 112
 		'attack_to',          #0x71 - 113
 		'attack_timeout',     #0x72 - 114
+		'issue_order',        #0x73 - 115
 	]
 
 	separate = [
@@ -444,6 +446,10 @@ class AIBIN:
 			[self.ai_byte, self.ai_address], # try_townpoint
 			[self.ai_word, self.ai_word, self.ai_word, self.ai_word], # attack_to
 			[self.ai_dword], # attack_timeout
+			[self.ai_byte, self.ai_word, self.ai_word,
+				self.ai_word, self.ai_word, self.ai_word,
+				self.ai_word, self.ai_word, self.ai_word, self.ai_word,
+				self.ai_word], # issue_order
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
