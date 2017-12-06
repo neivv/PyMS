@@ -153,7 +153,7 @@ class AIBIN:
 		'AttackTo',
 		'AttackTimeout',
 		'IssueOrder',
-		'IfDeaths',
+		'Deaths',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -272,7 +272,7 @@ class AIBIN:
 		'attack_to',          #0x71 - 113
 		'attack_timeout',     #0x72 - 114
 		'issue_order',        #0x73 - 115
-		'if_deaths',          #0x74 - 116
+		'deaths',          #0x74 - 116
 	]
 
 	separate = [
@@ -454,7 +454,7 @@ class AIBIN:
 				self.ai_word, self.ai_word, self.ai_word, self.ai_word,
 				self.ai_word], # issue_order
 			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit,
-				self.ai_address], # if_deaths
+				self.ai_address], # deaths
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -933,11 +933,14 @@ class AIBIN:
 	trig_compare_modes = [
 		('AtLeast', 0),
 		('AtMost', 1),
+		('Set', 7),
+		('Add', 8),
+		('Subtract', 9),
 		('Exactly', 10),
 	]
 
 	def ai_compare_trig(self, data, stage=0):
-		"""compare_trig        - Either AtLeast, AtMost or Exactly"""
+		"""compare_trig        - One of AtLeast, AtMost, Exactly, Set, Add or Subtract"""
 		if not stage:
 			v = ord(data[0])
 		elif stage == 1:
@@ -950,10 +953,7 @@ class AIBIN:
 		else:
 			pair = next((x for x in self.trig_compare_modes if x[0] == data), None)
 			if pair is None:
-				raise PyMSError(
-					'Parameter',
-					'Compare must be either LessThan, GreaterThan or Exactly, got %s instead' % data
-				)
+				raise PyMSError('Parameter', 'Unknown compare %s' % data)
 			v = pair[1]
 		return [1,v]
 
