@@ -23,6 +23,7 @@ types = [
 	'technology',
 	'string',
 	'compare'
+	'compare_trig'
 ]
 
 def convflags(num):
@@ -152,6 +153,7 @@ class AIBIN:
 		'AttackTo',
 		'AttackTimeout',
 		'IssueOrder',
+		'IfDeaths',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -270,6 +272,7 @@ class AIBIN:
 		'attack_to',          #0x71 - 113
 		'attack_timeout',     #0x72 - 114
 		'issue_order',        #0x73 - 115
+		'if_deaths',          #0x74 - 116
 	]
 
 	separate = [
@@ -450,6 +453,8 @@ class AIBIN:
 				self.ai_word, self.ai_word, self.ai_word,
 				self.ai_word, self.ai_word, self.ai_word, self.ai_word,
 				self.ai_word], # issue_order
+			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit,
+				self.ai_address], # if_deaths
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -473,7 +478,8 @@ class AIBIN:
 			'upgrade':[self.ai_upgrade],
 			'technology':[self.ai_technology],
 			'string':[self.ai_string],
-			'compare':[self.ai_compare]
+			'compare':[self.ai_compare],
+			'compare_trig':[self.ai_compare_trig],
 		}
 		self.typescanbe = {
 			'byte':[self.ai_byte],
@@ -489,7 +495,8 @@ class AIBIN:
 			'upgrade':[self.ai_upgrade],
 			'technology':[self.ai_technology],
 			'string':[self.ai_string],
-			'compare':[self.ai_compare]
+			'compare':[self.ai_compare],
+			'compare_trig':[self.ai_compare_trig],
 		}
 		self.script_endings = [0,36,39,57,65,97] #goto, stop, debug, racejump, return, kill_thread
 
@@ -921,6 +928,33 @@ class AIBIN:
 			if data not in ('LessThan','GreaterThan'):
 				raise PyMSError('Parameter','Compare must be either LessThan or GreaterThan, got %s instead' % data)
 			v = 1 if data == 'GreaterThan' else 0
+		return [1,v]
+
+	trig_compare_modes = [
+		('AtLeast', 0),
+		('AtMost', 1),
+		('Exactly', 10),
+	]
+
+	def ai_compare_trig(self, data, stage=0):
+		"""compare_trig        - Either AtLeast, AtMost or Exactly"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.trig_compare_modes if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for compare_trig' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.trig_compare_modes if x[0] == data), None)
+			if pair is None:
+				raise PyMSError(
+					'Parameter',
+					'Compare must be either LessThan, GreaterThan or Exactly, got %s instead' % data
+				)
+			v = pair[1]
 		return [1,v]
 
 	def interpret(self, files, defs=None, extra=False):

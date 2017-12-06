@@ -66,4 +66,4 @@ class OutputHandler:
 
 def setup_trace(toplevel, prog):
 	sys.stderr = ErrorHandler(toplevel, prog)
-	sys.stdout = OutputHandler(sys.stderr)
+	# sys.stdout = OutputHandler(sys.stderr)
