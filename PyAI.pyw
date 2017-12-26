@@ -27,6 +27,7 @@ types = [
 	('word','A number in the range 0 to 65535'),
 	('dword','A number in the range 0 to 4294967295'),
 	('unit','A unit ID from 0 to 227, or a full unit name from stat_txt.tbl'),
+	('unit_group','A unit ID from 0 to 227, a full unit name from stat_txt.tbl, None or Any'),
 	('building','Same as unit type, but only units that are Buildings, Resource Miners, and Overlords'),
 	('military','Same as unit type, but only for a unit to train (not a Building, Resource Miners, or Overlords)'),
 	('gg_military','Same as Military type, but only for defending against an enemy Ground unit attacking your Ground unit'),
@@ -37,7 +38,11 @@ types = [
 	('technology','An technology ID from 0 to 43, or a full technology name from stat_txt.tbl'),
 	('string',"A string of any characters (except for nulls: <0>) in TBL string formatting (use <40> for an open parenthesis '(', <41> for a close parenthesis ')', and <44> for a comma ',')"),
 	('block','The label name of a block in the code'),
-	('compare','Either LessThan or GreaterThan')
+	('compare','Either LessThan or GreaterThan'),
+	('compare_trig', 'One of AtLeast, AtMost, Exactly, Set, Add or Subtract'),
+	('order', 'An order ID from 0 to 188, or an order name'),
+	('point', "A point, either '(x, y)' or 'Loc.<location id>'"),
+	('area', "An area in form '(x, y) [~ radius]' or 'Loc.<location> [~ radius]'"),
 ]
 TYPE_HELP = odict()
 for t,h in types:
@@ -56,6 +61,7 @@ cmds = [
 		('attack_clear','Clear the attack data.'),
 		('attack_do','Attack the enemy with the current attacking party.'),
 		('attack_prepare','Prepare the attack.'),
+		('attack_to','Prepare attack at region of Point(1) and attack to region of Point(2)'),
 		('build','Build Building until it commands Byte(1) of them, at priority Byte(2).'),
 		('defensebuild_aa','Build Byte Military to defend against enemy attacking air units, when air units are attacked.'),
 		('defensebuild_ag','Build Byte Military to defend against enemy attacking air units, when ground units are attacked.'),
@@ -131,6 +137,8 @@ It seems that AI difficulty is mostly an unused concept. The AI Difficulty now i
 		('check_transports','Used in combination with header command transports_off, the AI will build and keep as many transports as was set by the define_max (max 5?) and use them for drops and expanding.'),
 		('creep','Effects the placement of towers (blizzard always uses 3 or 4 for Byte, see link below)'),
 		('get_oldpeons','Pull Byte existing workers from the main base to the expansion, but the main base will train the workers to replace the ones you took. Useful if you need workers as quickly as possible at the expansion.'),
+		('issue_order','Issue order Order for at most Word(1) units owned by current player matching type Unit(1) at area Area(1), targeting area Area(2) with target unit type Unit(2) and flags Word(2).'),
+		('deaths','Either jump based on comparing deaths suffered by Player Byte of Unit to Dword, or modify the said deaths'),
 	]),
 	('StarEdit',[
 		('disruption_web','Disruption Web at selected location. (STAREDIT)'),

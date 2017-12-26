@@ -1,5 +1,6 @@
 from utils import *
 from fileutils import *
+import aibin_orders
 import TBL, DAT
 
 import struct, re, os, sys
@@ -24,6 +25,10 @@ types = [
 	'string',
 	'compare'
 	'compare_trig'
+	'order',
+	'point',
+	'area',
+	'unit_group',
 ]
 
 def convflags(num):
@@ -306,6 +311,8 @@ class AIBIN:
 		self.warnings = None
 		self.bwscript = None
 		self.warnings = []
+		self.order_names = aibin_orders.names
+		self.order_name_to_id = aibin_orders.name_to_id
 		self.nobw = bwscript == None
 		if bwscript != False:
 			self.bwscript = BWBIN()
@@ -447,11 +454,10 @@ class AIBIN:
 			None, # help_iftrouble
 			[self.ai_byte, self.ai_address], # allies_watch
 			[self.ai_byte, self.ai_address], # try_townpoint
-			[self.ai_word, self.ai_word, self.ai_word, self.ai_word], # attack_to
+			[self.ai_point, self.ai_point], # attack_to
 			[self.ai_dword], # attack_timeout
-			[self.ai_byte, self.ai_word, self.ai_word,
-				self.ai_word, self.ai_word, self.ai_word,
-				self.ai_word, self.ai_word, self.ai_word, self.ai_word,
+			[self.ai_order, self.ai_word, self.ai_unit_or_group,
+				self.ai_area, self.ai_area, self.ai_unit_or_group,
 				self.ai_word], # issue_order
 			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit,
 				self.ai_address], # deaths
@@ -480,6 +486,10 @@ class AIBIN:
 			'string':[self.ai_string],
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
+			'order':[self.ai_order],
+			'area':[self.ai_area],
+			'point':[self.ai_point],
+			'unit_group':[self.ai_unit_or_group],
 		}
 		self.typescanbe = {
 			'byte':[self.ai_byte],
@@ -497,6 +507,10 @@ class AIBIN:
 			'string':[self.ai_string],
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
+			'order':[self.ai_order],
+			'area':[self.ai_area],
+			'point':[self.ai_point],
+			'unit_group':[self.ai_unit_or_group],
 		}
 		self.script_endings = [0,36,39,57,65,97] #goto, stop, debug, racejump, return, kill_thread
 
@@ -796,6 +810,109 @@ class AIBIN:
 					raise PyMSError('Parameter',"Unit '%s' was not found" % data)
 		return [2,v]
 
+	def ai_unit_or_group(self, data, stage=0):
+		"""unit_group        - Same as unit type, but also accepts 228/None and 229/Any"""
+		if stage == 0:
+			return self.ai_unit(data, stage)
+		elif stage == 1:
+			if data == 228:
+				v = 'None'
+			elif data == 229:
+				v = 'Any'
+			else:
+				return self.ai_unit(data, stage)
+		elif stage == 2:
+			return self.ai_unit(data, stage)
+		elif stage == 3:
+			if data.lower() == 'none':
+				v = 228
+			elif data.lower() == 'any':
+				v = 229
+			else:
+				return self.ai_unit(data, stage)
+		return [2,v]
+
+	def ai_order(self, data, stage=0):
+		"""order        - An order ID from 0 to 188, or a [hardcoded] order name"""
+		if stage == 0:
+			v = ord(data[0])
+		elif stage == 1:
+			v = self.order_names[data]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			try:
+				v = int(data)
+				if -1 > v or v > 188:
+					raise
+			except:
+				data = data.lower()
+				if data in self.order_name_to_id:
+					v = self.order_name_to_id[data]
+				else:
+					raise PyMSError('Parameter',"Order '%s' was not found" % data)
+		return [1,v]
+
+	def ai_point(self, data, stage=0):
+		"""point        - A point, either '(x, y)' or 'Loc.{location id}'"""
+		if stage == 0:
+			v = struct.unpack('<HH', data[:4])
+		elif stage == 1:
+			if data[0] == 65535:
+				v = 'Loc.%d' % data[1]
+			else:
+				v = '(%d, %d)' % (data[0], data[1])
+		elif stage == 2:
+			v = struct.pack('<HH', data[0], data[1])
+		elif stage == 3:
+			try:
+				data = data.strip()
+				v = None
+				if data.lower().startswith('loc.'):
+					location_id = int(data[4:])
+					v = (65535, location_id)
+				elif data[0] == '(' and data[-1] == ')':
+					tokens = [x.strip() for x in data[1:-1].split(',')]
+					if len(tokens) == 2:
+						v = (int(tokens[0]), int(tokens[1]))
+				if v is None:
+					raise PyMSError('Parameter', 'Invalid syntax for point')
+			except PyMSError, e:
+				raise e
+			except Exception, e:
+				raise PyMSError('Parameter', 'Invalid syntax for point (%s)' % e)
+
+		return [4, v]
+
+	def ai_area(self, data, stage=0):
+		"""area        - An area in form 'Point [~ radius]'"""
+		if stage == 0:
+			offset, pos = self.ai_point(data, stage)
+			radius, = struct.unpack('<H', data[offset:offset + 2])
+			v = (pos, radius)
+		elif stage == 1:
+			pos, radius = data
+			offset, pos_str = self.ai_point(pos, stage)
+			if radius != 0:
+				v = '%s ~ %d' % (pos_str, radius)
+			else:
+				v = '%s' % pos_str
+		elif stage == 2:
+			pos, radius = data
+			offset, pos_bytes = self.ai_point(pos, stage)
+			v = pos_bytes + struct.pack('<H', radius)
+		else:
+			halves = [x.strip() for x in data.split('~')]
+			if len(halves) > 2:
+				raise PyMSError('Parameter','Invalid area syntax')
+			offset, pos = self.ai_point(halves[0], stage)
+			if len(halves) > 1:
+				radius = int(halves[1])
+			else:
+				radius = 0
+			v = (pos, radius)
+		return [offset + 2, v]
+
 	def ai_building(self, data, stage=0):
 		"""building    - Same as unit type, but only units that are Buildings, Resource Miners, and Overlords"""
 		v = self.ai_unit(data, stage)
@@ -1007,19 +1124,33 @@ class AIBIN:
 			if warning.id in suppress_next_line:
 				return
 			warnings.append(warning)
-		def parse_param(p,d,n=None,line=None):
+		def parse_param(parse_fn,d,n=None,line=None):
 			try:
 				var = None
 				da = d
+				var_error = None
 				if d.lower() in variables:
-					for pt in self.typescanbe[p.__doc__.split(' ',1)[0]]:
+					for pt in self.typescanbe[parse_fn.__doc__.split(' ',1)[0]]:
 						if pt in variables[d.lower()][0]:
 							da = variables[d.lower()][1]
 							break
 					else:
-						raise PyMSError('Variable',"Incorrect type on varaible '%s'. Excpected '%s' but got '%s'" % (d.lower(), p.__doc__.split(' ',1)[0], variables[d.lower()][0][0].__doc__.split(' ',1)[0]),n,line, warnings=warnings)
+						# Don't immediatly raise type error if the variable alias is valid builtin
+						# name (lockdown is a tech alias in the default unitdef.txt, but also
+						# an order name)
+						var_error = PyMSError(
+							'Variable',
+							"Incorrect type on variable '%s'. Excpected '%s' but got '%s'" % (
+								d.lower(),
+								parse_fn.__doc__.split(' ',1)[0],
+								variables[d.lower()][0][0].__doc__.split(' ',1)[0]
+							),
+							n,
+							line,
+							warnings=warnings
+						)
 					var = PyMSWarning('Variable',"The variable '%s' of type '%s' was set to '%s'" % (d, variables[d.lower()][0][0].__doc__.split(' ',1)[0], variables[d.lower()][1]))
-				return p(da,3)
+				return parse_fn(da,3)
 			except PyMSWarning, w:
 				w.line = n + 1
 				w.code = line
@@ -1029,6 +1160,8 @@ class AIBIN:
 				add_warning(w)
 				return w.extra
 			except PyMSError, e:
+				if var_error:
+					raise var_error
 				e.line = n + 1
 				e.code = line
 				e.warnings = warnings
@@ -1036,8 +1169,9 @@ class AIBIN:
 					var.warning += ' when the above error happened'
 					e.warnings.append(var)
 				raise e
-			except:
-				raise PyMSError('Parameter',"Invalid parameter data '%s', looking for type '%s'" % (d,p.__doc__.split(' ',1)[0]),n,line, warnings=warnings)
+			except Exception, e:
+				raise PyMSError('Parameter',"Invalid parameter data '%s', looking for type '%s'.\nDetails: %s" %
+						(d,parse_fn.__doc__.split(' ',1)[0], e),n,line, warnings=warnings)
 		def load_defs(defname):
 			try:
 				deffile = os.path.join(os.path.dirname(files[0]),defname)
@@ -1250,7 +1384,7 @@ class AIBIN:
 								cmdn = 0
 								continue
 							if ai:
-								match = re.match('\\A(.+)\\(\\s*(.+)?\\s*\\)\\Z', line)
+								match = re.match('\\A(.+?)\\(\\s*(.+)?\\s*\\)\\Z', line)
 								if match:
 									cmd = match.group(1).lower()
 									if cmd in self.labels:
@@ -1268,7 +1402,26 @@ class AIBIN:
 										notused = False
 									dat = []
 									if match.group(2):
-										dat = re.split('\\s*,\\s*', match.group(2))
+										# Should split 'a, (b, c), d' as ['a', '(b, c)', 'd']
+										def split_params(text):
+											token_start = 0
+											pos = 0
+											tokens = []
+											parens = 0
+											while pos < len(text):
+												if text[pos] == '(':
+													parens += 1
+												elif text[pos] == ')':
+													parens -= 1
+												elif text[pos] == ',' and parens == 0:
+													tokens += [text[token_start:pos].strip()]
+													token_start = pos + 1
+												pos += 1
+											last = text[token_start:pos].strip()
+											if len(last):
+												tokens += [last]
+											return tokens
+										dat = split_params(match.group(2))
 									params = self.parameters[ai[4][-1][0]]
 									if params and len(dat) != len(params):
 										raise PyMSError('Interpreting','Incorrect amount of parameters (got %s, needed %s)' % (len(dat), len(params)),n,line, warnings=warnings)
