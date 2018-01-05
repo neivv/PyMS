@@ -43,6 +43,21 @@ types = [
 	('order', 'An order ID from 0 to 188, or an order name'),
 	('point', "A point, either '(x, y)' or 'Loc.<location id>'"),
 	('area', "An area in form '(x, y) [~ radius]' or 'Loc.<location> [~ radius]'"),
+	('idle_order', "An order ID from 0 to 188, an order name, 'DisableBuiltin', or 'EnableBuiltin'"),
+	('issue_order_flags', """Any of the following flags - use | to combine them.
+    'Enemies'
+    'Own'
+    'Allied'
+    'SingleUnit'
+    'EachAtMostOnce'"""),
+	('idle_order_flags', """Any of the following flags - use | to combine them.
+    'NotEnemies'
+    'Own'
+    'Allied'
+    'Unseen'
+    'Invisible'
+    'RemoveSilentFail'
+    'Remove'""")
 ]
 TYPE_HELP = odict()
 for t,h in types:
@@ -139,6 +154,7 @@ It seems that AI difficulty is mostly an unused concept. The AI Difficulty now i
 		('get_oldpeons','Pull Byte existing workers from the main base to the expansion, but the main base will train the workers to replace the ones you took. Useful if you need workers as quickly as possible at the expansion.'),
 		('issue_order','Issue order Order for at most Word(1) units owned by current player matching type Unit(1) at area Area(1), targeting area Area(2) with target unit type Unit(2) and flags Word(2).'),
 		('deaths','Either jump based on comparing deaths suffered by Player Byte of Unit to Dword, or modify the said deaths'),
+		('idle_orders','Set idle order Order for the AI controlled unit Unit(1) targeting Unit(2), executed every Word(1) frames with maximum of Word(2) units targeting a single unit and maximum distance of Word(3). Byte(1) sets the priority relative to other idle_orders.'),
 	]),
 	('StarEdit',[
 		('disruption_web','Disruption Web at selected location. (STAREDIT)'),

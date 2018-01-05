@@ -148,7 +148,6 @@ def fit(label, text, width=80, end=False, indent=0):
 					indent = True
 				r += l
 				r += '\n'
-			r += '\n'
 	return r.rstrip('\n') + '\n' if end else ''
 
 def removedir(path):

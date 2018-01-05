@@ -40,6 +40,26 @@ def convflags(num):
 	b.reverse()
 	return ''.join(b)
 
+idle_order_flag_names = {
+	0x1: 'NotEnemies',
+	0x2: 'Own',
+	0x4: 'Allied',
+	0x8: 'Unseen',
+	0x10: 'Invisible',
+	0x4000: 'RemoveSilentFail',
+	0x8000: 'Remove',
+}
+idle_order_flag_reverse = dict((v.lower(), k) for k, v in idle_order_flag_names.iteritems())
+
+issue_order_flag_names = {
+	0x1: 'Enemies',
+	0x2: 'Own',
+	0x4: 'Allied',
+	0x8: 'SingleUnit',
+	0x10: 'EachAtMostOnce',
+}
+issue_order_flag_reverse = dict((v.lower(), k) for k, v in issue_order_flag_names.iteritems())
+
 class AIBIN:
 	labels = [
 		'Goto',
@@ -159,6 +179,7 @@ class AIBIN:
 		'AttackTimeout',
 		'IssueOrder',
 		'Deaths',
+		'IdleOrders',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -278,6 +299,7 @@ class AIBIN:
 		'attack_timeout',     #0x72 - 114
 		'issue_order',        #0x73 - 115
 		'deaths',          #0x74 - 116
+		'idle_orders',        #0x75 - 117
 	]
 
 	separate = [
@@ -458,9 +480,12 @@ class AIBIN:
 			[self.ai_dword], # attack_timeout
 			[self.ai_order, self.ai_word, self.ai_unit_or_group,
 				self.ai_area, self.ai_area, self.ai_unit_or_group,
-				self.ai_word], # issue_order
+				self.ai_issue_order_flags], # issue_order
 			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit,
 				self.ai_address], # deaths
+			[self.ai_idle_order, self.ai_word, self.ai_word, self.ai_unit_or_group,
+				self.ai_word, self.ai_unit_or_group, self.ai_byte,
+				self.ai_idle_order_flags], # idle_orders
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -490,6 +515,9 @@ class AIBIN:
 			'area':[self.ai_area],
 			'point':[self.ai_point],
 			'unit_group':[self.ai_unit_or_group],
+			'issue_order_flags':[self.ai_issue_order_flags],
+			'idle_order':[self.ai_idle_order],
+			'idle_order_flags':[self.ai_idle_order_flags],
 		}
 		self.typescanbe = {
 			'byte':[self.ai_byte],
@@ -510,7 +538,10 @@ class AIBIN:
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
-			'unit_group':[self.ai_unit_or_group],
+			'unit_group':[self.ai_unit,self.ai_building,self.ai_military,self.ai_ggmilitary,self.ai_agmilitary,self.ai_gamilitary,self.ai_aamilitary],
+			'issue_order_flags':[self.ai_issue_order_flags],
+			'idle_order':[self.ai_order],
+			'idle_order_flags':[self.ai_idle_order_flags],
 		}
 		self.script_endings = [0,36,39,57,65,97] #goto, stop, debug, racejump, return, kill_thread
 
@@ -852,6 +883,84 @@ class AIBIN:
 				else:
 					raise PyMSError('Parameter',"Order '%s' was not found" % data)
 		return [1,v]
+
+	def ai_idle_order(self, data, stage=0):
+		"""idle_order        - An order ID from 0 to 188, or a [hardcoded] order name,
+						or DisableBuiltin or EnableBuiltin"""
+		if stage == 1:
+			if data == 254:
+				v = 'EnableBuiltin'
+			elif data == 255:
+				v = 'DisableBuiltin'
+			else:
+				return self.ai_order(data, stage)
+		elif stage == 3:
+			try:
+				v = int(data)
+			except:
+				data = data.lower()
+				if data == 'enablebuiltin':
+					v = 254
+				if data == 'disablebuiltin':
+					v = 255
+				else:
+					return self.ai_order(data, stage)
+		else:
+			return self.ai_order(data, stage)
+		return [1,v]
+
+	def ai_idle_order_flags(self, data, stage=0):
+		"""idle_order_flags        - Any of the following:
+			NotEnemies
+			Own
+			Allied
+			Unseen
+			Invisible
+			RemoveSilentFail
+			Remove
+		"""
+		return self.flags(data, stage, idle_order_flag_names, idle_order_flag_reverse)
+
+	def flags(self, data, stage, names, reverse):
+		if stage == 0:
+			v, = struct.unpack('<H', data[:2])
+		elif stage == 1:
+			v = ''
+			for i in range(16):
+				mask = 1 << i
+				if data & mask != 0:
+					if v != '':
+						v += ' | '
+					if mask in names:
+						v += names[mask]
+					else:
+						v += hex(mask)
+			if v == '':
+				v = '0'
+		elif stage == 2:
+			v = struct.pack('<H', data)
+		elif stage == 3:
+			v = 0
+			for part in data.split('|'):
+				part = part.lower().strip()
+				if part in reverse:
+					v |= reverse[part]
+				else:
+					if part.startswith('0x'):
+						v |= int(part, 16)
+					else:
+						v |= int(part, 10)
+		return [2,v]
+
+	def ai_issue_order_flags(self, data, stage=0):
+		"""issue_order_flags        - Any of the following:
+			Enemies
+			Own
+			Allied
+			SingleUnit
+			EachAtMostOnce
+		"""
+		return self.flags(data, stage, issue_order_flag_names, issue_order_flag_reverse)
 
 	def ai_point(self, data, stage=0):
 		"""point        - A point, either '(x, y)' or 'Loc.{location id}'"""
