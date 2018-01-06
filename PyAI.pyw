@@ -57,7 +57,11 @@ types = [
     'Unseen'
     'Invisible'
     'RemoveSilentFail'
-    'Remove'""")
+    'Remove'
+    'SpellEffects(spell_effects)'
+    'WithoutSpellEffects(spell_effects)'
+    `spell_effects` are 'ensnare', 'plague', 'lockdown', 'irradiate', 'parasite', 'blind', 'matrix', 'maelstrom'
+    """)
 ]
 TYPE_HELP = odict()
 for t,h in types:

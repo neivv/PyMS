@@ -50,6 +50,19 @@ idle_order_flag_names = {
 	0x8000: 'Remove',
 }
 idle_order_flag_reverse = dict((v.lower(), k) for k, v in idle_order_flag_names.iteritems())
+spell_effect_names = {
+	0x1: 'Ensnare',
+	0x2: 'Plague',
+	0x4: 'Lockdown',
+	0x8: 'Irradiate',
+	0x10: 'Parasite',
+	0x20: 'Blind',
+	0x40: 'Matrix',
+	0x80: 'Maelstrom',
+}
+spell_effect_names_reverse = (
+	dict((v.lower(), k) for k, v in spell_effect_names.iteritems())
+)
 
 issue_order_flag_names = {
 	0x1: 'Enemies',
@@ -919,37 +932,87 @@ class AIBIN:
 			RemoveSilentFail
 			Remove
 		"""
-		return self.flags(data, stage, idle_order_flag_names, idle_order_flag_reverse)
+		if stage == 0:
+			pos = 0
+			result = []
+			while True:
+				v, = struct.unpack('<H', data[pos:pos + 2])
+				result += [v]
+				pos += 2
+				if v & 0x2f00 == 0:
+					break
+			return [pos, result]
+		elif stage == 1:
+			size, basic_flags = (
+				self.flags(data[-1], stage, idle_order_flag_names, idle_order_flag_reverse)
+			)
+			result = '' if basic_flags == '0' else basic_flags
+			for extended in data[:-1]:
+				if result != '':
+					result += ' | '
+				ty = (extended & 0x2f00) >> 8
+				val = extended & 0xff
+				if ty == 1:
+					result += 'SpellEffects(%s)' % flags_to_str(val, spell_effect_names)
+				elif ty == 2:
+					result += 'WithoutSpellEffects(%s)' % flags_to_str(val, spell_effect_names)
+				else:
+					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
+				size += 2
+			if result == '':
+				result = '0'
+			return [size, result]
+		elif stage == 2:
+			result = ''
+			size = 0
+			for x in data:
+				result += struct.pack('<H', x)
+				size += 2
+			return [size, result]
+		elif stage == 3:
+			parts = [x.lower().strip() for x in data.split('|')]
+			simple = [x for x in parts if not '(' in x]
+			extended = [x for x in parts if '(' in x]
+			result = []
+			size = 0
+			for e in extended:
+				print(e)
+				match = re.match(r'(\w*)\((.*)\)', e)
+				if match:
+					name = match.group(1)
+					flags = match.group(2)
+					print(name, flags)
+					val = flags_from_str(flags, spell_effect_names_reverse)
+					if val >= 0x100:
+						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+					if name == 'spelleffects':
+						result += [0x100 | val]
+					elif name == 'withoutspelleffects':
+						result += [0x200 | val]
+					size += 2
+				else:
+					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+			basic_size, basic_result = (
+				self.flags('|'.join(simple), stage, idle_order_flag_names, idle_order_flag_reverse)
+			)
+			if basic_result & 0x2f00 != 0:
+				raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % str(simple))
+			size += basic_size
+			print(result)
+			result += [basic_result]
+			return [size, result]
+
 
 	def flags(self, data, stage, names, reverse):
 		if stage == 0:
 			v, = struct.unpack('<H', data[:2])
 		elif stage == 1:
-			v = ''
-			for i in range(16):
-				mask = 1 << i
-				if data & mask != 0:
-					if v != '':
-						v += ' | '
-					if mask in names:
-						v += names[mask]
-					else:
-						v += hex(mask)
-			if v == '':
-				v = '0'
+			v = flags_to_str(data, names)
 		elif stage == 2:
 			v = struct.pack('<H', data)
 		elif stage == 3:
-			v = 0
-			for part in data.split('|'):
-				part = part.lower().strip()
-				if part in reverse:
-					v |= reverse[part]
-				else:
-					if part.startswith('0x'):
-						v |= int(part, 16)
-					else:
-						v |= int(part, 10)
+			print(data)
+			v = flags_from_str(data, reverse)
 		return [2,v]
 
 	def ai_issue_order_flags(self, data, stage=0):
@@ -2478,6 +2541,35 @@ class BWBIN(AIBIN):
 			f.write(compress(info + '\x00',9))
 		f.close()
 		return []
+
+""" Formats an integer to a flag string, e.g. 'a | b | c | 0x40' """
+def flags_to_str(data, names):
+	v = ''
+	for i in range(16):
+		mask = 1 << i
+		if data & mask != 0:
+			if v != '':
+				v += ' | '
+			if mask in names:
+				v += names[mask]
+			else:
+				v += hex(mask)
+	if v == '':
+		v = '0'
+	return v
+
+def flags_from_str(data, reverse):
+	v = 0
+	for part in data.split('|'):
+		part = part.lower().strip()
+		if part in reverse:
+			v |= reverse[part]
+		else:
+			if part.startswith('0x'):
+				v |= int(part, 16)
+			else:
+				v |= int(part, 10)
+	return v
 
 # gwarnings = []
 # try:
