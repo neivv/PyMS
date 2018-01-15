@@ -46,6 +46,7 @@ idle_order_flag_names = {
 	0x4: 'Allied',
 	0x8: 'Unseen',
 	0x10: 'Invisible',
+	0x20: 'InCombat',
 	0x4000: 'RemoveSilentFail',
 	0x8000: 'Remove',
 }

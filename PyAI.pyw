@@ -56,6 +56,7 @@ types = [
     'Allied'
     'Unseen'
     'Invisible'
+    'InCombat'
     'RemoveSilentFail'
     'Remove'
     'SpellEffects(spell_effects)'
