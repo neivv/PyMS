@@ -977,12 +977,10 @@ class AIBIN:
 			result = []
 			size = 0
 			for e in extended:
-				print(e)
 				match = re.match(r'(\w*)\((.*)\)', e)
 				if match:
 					name = match.group(1)
 					flags = match.group(2)
-					print(name, flags)
 					val = flags_from_str(flags, spell_effect_names_reverse)
 					if val >= 0x100:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
@@ -999,7 +997,6 @@ class AIBIN:
 			if basic_result & 0x2f00 != 0:
 				raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % str(simple))
 			size += basic_size
-			print(result)
 			result += [basic_result]
 			return [size, result]
 
@@ -1012,7 +1009,6 @@ class AIBIN:
 		elif stage == 2:
 			v = struct.pack('<H', data)
 		elif stage == 3:
-			print(data)
 			v = flags_from_str(data, reverse)
 		return [2,v]
 
@@ -2561,6 +2557,8 @@ def flags_to_str(data, names):
 
 def flags_from_str(data, reverse):
 	v = 0
+	if data == '':
+		return v
 	for part in data.split('|'):
 		part = part.lower().strip()
 		if part in reverse:
