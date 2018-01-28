@@ -196,6 +196,8 @@ class AIBIN:
 		'IdleOrders',
 		'IfAttacking',
 		'UnstartCampaign',
+		'MaxWorkers',
+		'UnderAttack',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -318,6 +320,8 @@ class AIBIN:
 		'idle_orders',        #0x75 - 117
 		'if_attacking',        #0x75 - 117
 		'unstart_campaign',        #0x75 - 117
+		'max_workers',        #0x75 - 117
+		'under_attack',        #0x75 - 117
 	]
 
 	separate = [
@@ -506,6 +510,8 @@ class AIBIN:
 				self.ai_idle_order_flags], # idle_orders
 			[self.ai_address], # if_attacking
 			None, # unstart_campaign
+			[self.ai_byte], # max_workers
+			[self.ai_byte], # under_attack
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
