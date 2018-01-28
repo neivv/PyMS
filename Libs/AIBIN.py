@@ -194,6 +194,8 @@ class AIBIN:
 		'IssueOrder',
 		'Deaths',
 		'IdleOrders',
+		'IfAttacking',
+		'UnstartCampaign',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -314,6 +316,8 @@ class AIBIN:
 		'issue_order',        #0x73 - 115
 		'deaths',          #0x74 - 116
 		'idle_orders',        #0x75 - 117
+		'if_attacking',        #0x75 - 117
+		'unstart_campaign',        #0x75 - 117
 	]
 
 	separate = [
@@ -500,6 +504,8 @@ class AIBIN:
 			[self.ai_idle_order, self.ai_word, self.ai_word, self.ai_unit_or_group,
 				self.ai_word, self.ai_unit_or_group, self.ai_byte,
 				self.ai_idle_order_flags], # idle_orders
+			[self.ai_address], # if_attacking
+			None, # unstart_campaign
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
