@@ -982,15 +982,19 @@ class AIBIN:
 					compare = 'BROKEN'
 					c_id = val & 0xf
 					ty_id = (val >> 4) & 0xf
-					amount = extended[1]
+					amount = float(extended[1])
 					if c_id == 0:
 						compare = 'LessThan'
+						amount = str(amount / 256)
 					elif c_id == 1:
 						compare = 'GreaterThan'
+						amount = str(amount / 256)
 					elif c_id == 2:
 						compare = 'LessThanPercent'
+						amount = str(int(amount))
 					elif c_id == 3:
 						compare = 'GreaterThanPercent'
+						amount = str(int(amount))
 					if ty_id == 0:
 						ty = 'Hp'
 					elif ty_id == 1:
@@ -999,7 +1003,7 @@ class AIBIN:
 						ty = 'Health'
 					elif ty_id == 3:
 						ty = 'Energy'
-					result += '%s(%s, %d)' % (ty, compare, amount)
+					result += '%s(%s, %s)' % (ty, compare, amount)
 					size += 4
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
@@ -1041,7 +1045,7 @@ class AIBIN:
 						if len(params) != 2:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						compare = params[0]
-						amount = int(params[1])
+						amount = float(params[1])
 						val = 0
 						if name == 'shields':
 							val |= 0x10
@@ -1051,15 +1055,17 @@ class AIBIN:
 							val |= 0x30
 						if compare == 'lessthan':
 							val |= 0x0
+							amount *= 256
 						elif compare == 'greaterthan':
 							val |= 0x1
+							amount *= 256
 						elif compare == 'lessthanpercent':
 							val |= 0x2
 						elif compare == 'greaterthanpercent':
 							val |= 0x3
 						else:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
-						result += [(0x300 | val, amount)]
+						result += [(0x300 | val, int(amount))]
 						size += 4
 					size += 2
 				else:
