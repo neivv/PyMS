@@ -950,25 +950,57 @@ class AIBIN:
 			result = []
 			while True:
 				v, = struct.unpack('<H', data[pos:pos + 2])
-				result += [v]
-				pos += 2
+				if (v & 0x2f00) >> 8 == 3:
+					# i32 amount
+					amt, = struct.unpack('<I', data[pos + 2:pos + 6])
+					result += [(v, amt)]
+					pos += 6
+				else:
+					result += [(v,)]
+					pos += 2
 				if v & 0x2f00 == 0:
 					break
 			return [pos, result]
 		elif stage == 1:
 			size, basic_flags = (
-				self.flags(data[-1], stage, idle_order_flag_names, idle_order_flag_reverse)
+				self.flags(data[-1][0], stage, idle_order_flag_names, idle_order_flag_reverse)
 			)
 			result = '' if basic_flags == '0' else basic_flags
 			for extended in data[:-1]:
 				if result != '':
 					result += ' | '
-				ty = (extended & 0x2f00) >> 8
-				val = extended & 0xff
+				ty = (extended[0] & 0x2f00) >> 8
+				val = extended[0] & 0xff
 				if ty == 1:
 					result += 'SpellEffects(%s)' % flags_to_str(val, spell_effect_names)
 				elif ty == 2:
 					result += 'WithoutSpellEffects(%s)' % flags_to_str(val, spell_effect_names)
+				elif ty == 3:
+					# Maybe it's actually fine to just show BROKEN if the script is broken
+					# instead of erroring? Users can give better error reports =)
+					ty = 'BROKEN'
+					compare = 'BROKEN'
+					c_id = val & 0xf
+					ty_id = (val >> 4) & 0xf
+					amount = extended[1]
+					if c_id == 0:
+						compare = 'LessThan'
+					elif c_id == 1:
+						compare = 'GreaterThan'
+					elif c_id == 2:
+						compare = 'LessThanPercent'
+					elif c_id == 3:
+						compare = 'GreaterThanPercent'
+					if ty_id == 0:
+						ty = 'Hp'
+					elif ty_id == 1:
+						ty = 'Shields'
+					elif ty_id == 2:
+						ty = 'Health'
+					elif ty_id == 3:
+						ty = 'Energy'
+					result += '%s(%s, %d)' % (ty, compare, amount)
+					size += 4
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -979,8 +1011,11 @@ class AIBIN:
 			result = ''
 			size = 0
 			for x in data:
-				result += struct.pack('<H', x)
+				result += struct.pack('<H', x[0])
 				size += 2
+				if (x[0] & 0x2f00) >> 8 == 3:
+					result += struct.pack('<I', x[1])
+					size += 4
 			return [size, result]
 		elif stage == 3:
 			parts = [x.lower().strip() for x in data.split('|')]
@@ -992,14 +1027,40 @@ class AIBIN:
 				match = re.match(r'(\w*)\((.*)\)', e)
 				if match:
 					name = match.group(1)
-					flags = match.group(2)
-					val = flags_from_str(flags, spell_effect_names_reverse)
-					if val >= 0x100:
-						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
-					if name == 'spelleffects':
-						result += [0x100 | val]
-					elif name == 'withoutspelleffects':
-						result += [0x200 | val]
+					if name == 'spelleffects' or name == 'withoutspelleffects':
+						flags = match.group(2)
+						val = flags_from_str(flags, spell_effect_names_reverse)
+						if val >= 0x100:
+							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+						if name == 'spelleffects':
+							result += [(0x100 | val,)]
+						else:
+							result += [(0x200 | val,)]
+					elif name in ('hp', 'shields', 'health', 'energy'):
+						params = match.group(2).split(',')
+						if len(params) != 2:
+							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+						compare = params[0]
+						amount = int(params[1])
+						val = 0
+						if name == 'shields':
+							val |= 0x10
+						elif name == 'health':
+							val |= 0x20
+						elif name == 'energy':
+							val |= 0x30
+						if compare == 'lessthan':
+							val |= 0x0
+						elif compare == 'greaterthan':
+							val |= 0x1
+						elif compare == 'lessthanpercent':
+							val |= 0x2
+						elif compare == 'greaterthanpercent':
+							val |= 0x3
+						else:
+							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+						result += [(0x300 | val, amount)]
+						size += 4
 					size += 2
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
@@ -1009,7 +1070,7 @@ class AIBIN:
 			if basic_result & 0x2f00 != 0:
 				raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % str(simple))
 			size += basic_size
-			result += [basic_result]
+			result += [(basic_result,)]
 			return [size, result]
 
 

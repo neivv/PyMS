@@ -61,7 +61,12 @@ types = [
     'Remove'
     'SpellEffects(spell_effects)'
     'WithoutSpellEffects(spell_effects)'
+    'Hp(compare, amount)'
+    'Shields(compare, amount)'
+    'Health(compare, amount)'
+    'Energy(compare, amount)'
     `spell_effects` are 'ensnare', 'plague', 'lockdown', 'irradiate', 'parasite', 'blind', 'matrix', 'maelstrom'
+    `compare` can be 'LessThan', 'GreaterThan', 'LessThanPercent', 'GreaterThanPercent'
     """)
 ]
 TYPE_HELP = odict()
