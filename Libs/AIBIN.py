@@ -540,6 +540,7 @@ class AIBIN:
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
+			'unit_id':[self.ai_unit_id],
 			'unit_group':[self.ai_unit_or_group],
 			'issue_order_flags':[self.ai_issue_order_flags],
 			'idle_order':[self.ai_idle_order],
@@ -867,8 +868,8 @@ class AIBIN:
 					raise PyMSError('Parameter',"Unit '%s' was not found" % data)
 		return [2,v]
 
-	def ai_unit_or_group(self, data, stage=0):
-		"""unit_group        - Same as unit type, but also accepts 228/None and 229/Any"""
+	def ai_unit_id(self, data, stage=0):
+		"""unit_id        - Same as unit type, but also accepts 228/None and 229/Any"""
 		if stage == 0:
 			return self.ai_unit(data, stage)
 		elif stage == 1:
@@ -876,6 +877,12 @@ class AIBIN:
 				v = 'None'
 			elif data == 229:
 				v = 'Any'
+			elif data == 230:
+				v = 'Group_Men'
+			elif data == 231:
+				v = 'Group_Buildings'
+			elif data == 232:
+				v = 'Group_Factories'
 			else:
 				return self.ai_unit(data, stage)
 		elif stage == 2:
@@ -885,9 +892,66 @@ class AIBIN:
 				v = 228
 			elif data.lower() == 'any':
 				v = 229
+			elif data.lower() == 'group_men':
+				v = 230
+			elif data.lower() == 'group_buildings':
+				v = 231
+			elif data.lower() == 'group_factories':
+				v = 232
 			else:
 				return self.ai_unit(data, stage)
 		return [2,v]
+
+	def ai_unit_or_group(self, data, stage=0):
+		"""unit_group        - Same as unit_id, but allows multiple with '|'"""
+		if stage == 0:
+			v, = struct.unpack('<H', data[:2])
+			if v > 0xff00:
+				amt = v & 0xff
+				sum = 2
+				val = []
+				for i in range(amt):
+					sz, v = self.ai_unit_id(data[sum:], stage)
+					sum += sz
+					val.append(v)
+				return [sum, tuple(val)]
+			else:
+				sz, v = self.ai_unit_id(data, stage)
+				return [sz, (v,)]
+		elif stage == 1:
+			result = ''
+			sum = 0
+			for x in data:
+				sz, text = self.ai_unit_id(x, stage)
+				sum += sz
+				if result != '':
+					result += ' | '
+				result += text
+			if len(data) == 1:
+				return [sum, result]
+			else:
+				return [2 + sum, result]
+		elif stage == 2:
+			result = ''
+			if len(data) > 1:
+				assert(len(data) <= 0xff)
+				result += struct.pack('<H', 0xff00 | len(data))
+			for id in data:
+				sz, val = self.ai_unit_id(id, stage)
+				result += val
+			return [len(result), result]
+		elif stage == 3:
+			tokens = data.split('|')
+			result = []
+			sum = 0
+			for tok in tokens:
+				sz, val = self.ai_unit_id(tok.strip(), stage)
+				sum += sz
+				result.append(val)
+			if len(result) == 1:
+				return [sum, tuple(result)]
+			else:
+				return [2 + sum, tuple(result)]
 
 	def ai_order(self, data, stage=0):
 		"""order        - An order ID from 0 to 188, or a [hardcoded] order name"""
@@ -1375,29 +1439,46 @@ class AIBIN:
 		def parse_param(parse_fn,d,n=None,line=None):
 			try:
 				var = None
-				da = d
 				var_error = None
-				if d.lower() in variables:
-					for pt in self.typescanbe[parse_fn.__doc__.split(' ',1)[0]]:
-						if pt in variables[d.lower()][0]:
-							da = variables[d.lower()][1]
-							break
-					else:
-						# Don't immediatly raise type error if the variable alias is valid builtin
-						# name (lockdown is a tech alias in the default unitdef.txt, but also
-						# an order name)
-						var_error = PyMSError(
-							'Variable',
-							"Incorrect type on variable '%s'. Excpected '%s' but got '%s'" % (
-								d.lower(),
-								parse_fn.__doc__.split(' ',1)[0],
-								variables[d.lower()][0][0].__doc__.split(' ',1)[0]
-							),
-							n,
-							line,
-							warnings=warnings
+				def try_substitute(name):
+					result = name
+					lower = name.lower()
+					if lower in variables:
+						for pt in self.typescanbe[parse_fn.__doc__.split(' ',1)[0]]:
+							if pt in variables[lower][0]:
+								result = variables[lower][1]
+								break
+						else:
+							# Don't immediatly raise type error if the variable alias is valid builtin
+							# name (lockdown is a tech alias in the default unitdef.txt, but also
+							# an order name)
+							var_error = PyMSError(
+								'Variable',
+								"Incorrect type on variable '%s'. Excpected '%s' but got '%s'" % (
+									lower,
+									parse_fn.__doc__.split(' ',1)[0],
+									variables[lower][0][0].__doc__.split(' ',1)[0]
+								),
+								n,
+								line,
+								warnings=warnings
+							)
+						var = PyMSWarning(
+							'Variable',"The variable '%s' of type '%s' was set to '%s'" % (
+								name,
+								variables[lower][0][0].__doc__.split(' ',1)[0],
+								variables[lower][1]
+							)
 						)
-					var = PyMSWarning('Variable',"The variable '%s' of type '%s' was set to '%s'" % (d, variables[d.lower()][0][0].__doc__.split(' ',1)[0], variables[d.lower()][1]))
+					return result
+				if '|' in d:
+					# Try substituting the parts
+					tokens = d.split('|')
+					for i in range(len(tokens)):
+						tokens[i] = try_substitute(tokens[i].strip())
+					da = '|'.join(tokens)
+				else:
+					da = try_substitute(d)
 				return parse_fn(da,3)
 			except PyMSWarning, w:
 				w.line = n + 1
