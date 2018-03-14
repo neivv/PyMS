@@ -47,6 +47,7 @@ idle_order_flag_names = {
 	0x8: 'Unseen',
 	0x10: 'Invisible',
 	0x20: 'InCombat',
+	0x40: 'Deathrattle',
 	0x4000: 'RemoveSilentFail',
 	0x8000: 'Remove',
 }
