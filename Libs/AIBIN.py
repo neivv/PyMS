@@ -1012,20 +1012,34 @@ class AIBIN:
 		"""
 		if stage == 0:
 			pos = 0
-			result = []
+			current = []
+			stack = []
+			depth = 0
 			while True:
 				v, = struct.unpack('<H', data[pos:pos + 2])
 				if (v & 0x2f00) >> 8 == 3:
 					# i32 amount
 					amt, = struct.unpack('<I', data[pos + 2:pos + 6])
-					result += [(v, amt)]
+					current += [(v, amt)]
 					pos += 6
+				elif (v & 0x2f00) >> 8 == 4:
+					depth += 1
+					current += [(v,)]
+					stack.append(current)
+					current = []
+					pos += 2
 				else:
-					result += [(v,)]
+					current += [(v,)]
 					pos += 2
 				if v & 0x2f00 == 0:
-					break
-			return [pos, result]
+					if depth == 0:
+						result = current
+						return [pos, result]
+					else:
+						depth -= 1
+						finished = current
+						current = stack.pop()
+						current[-1] = (current[-1][0], finished)
 		elif stage == 1:
 			size, basic_flags = (
 				self.flags(data[-1][0], stage, idle_order_flag_names, idle_order_flag_reverse)
@@ -1070,6 +1084,11 @@ class AIBIN:
 						ty = 'Energy'
 					result += '%s(%s, %s)' % (ty, compare, amount)
 					size += 4
+				elif ty == 4:
+					subgroup = extended[1]
+					sz, self_flags = self.ai_idle_order_flags(subgroup, 1)
+					result += 'Self(' + self_flags + ')'
+					size += sz
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1085,13 +1104,52 @@ class AIBIN:
 				if (x[0] & 0x2f00) >> 8 == 3:
 					result += struct.pack('<I', x[1])
 					size += 4
+				if (x[0] & 0x2f00) >> 8 == 4:
+					sz, res = self.ai_idle_order_flags(x[1], 2)
+					size += sz
+					result += res
 			return [size, result]
 		elif stage == 3:
-			parts = [x.lower().strip() for x in data.split('|')]
-			simple = [x for x in parts if not '(' in x]
-			extended = [x for x in parts if '(' in x]
 			result = []
 			size = 0
+
+			data = data.lower()
+			# Finds a subgroup and returns the text with the subgroup removed and subgroup
+			# not including the name/parens
+			def find_subgroup(text, match):
+				assert match.isalpha()
+				match = re.search(match + r'\s*\(', text)
+				if match is None:
+					return (text, '')
+
+				pos = match.end()
+				depth = 0
+				while pos < len(text):
+					if text[pos] == ')':
+						if depth == 0:
+							rest = text[:match.start()] + text[pos + 1:]
+							subgroup = text[match.end():pos]
+							return (rest, subgroup)
+						else:
+							depth -= 1
+					if text[pos] == '(':
+						depth += 1
+					pos += 1
+				return (text, '')
+
+			while True:
+				data, self_flags = find_subgroup(data, 'self')
+				if self_flags != '':
+					sz, self_flags_bin = self.ai_idle_order_flags(self_flags, 3)
+					size += sz + 2
+					result += [(0x400, self_flags_bin)]
+				else:
+					break
+			parts = [x.lower().strip() for x in data.split('|')]
+			parts = [x for x in parts if x != '']
+			parts = [x for x in parts if not x.isspace()]
+			simple = [x for x in parts if not '(' in x]
+			extended = [x for x in parts if '(' in x]
 			for e in extended:
 				match = re.match(r'(\w*)\((.*)\)', e)
 				if match:
@@ -1112,12 +1170,16 @@ class AIBIN:
 						compare = params[0]
 						amount = float(params[1])
 						val = 0
-						if name == 'shields':
+						if name == 'hp':
+							pass
+						elif name == 'shields':
 							val |= 0x10
 						elif name == 'health':
 							val |= 0x20
 						elif name == 'energy':
 							val |= 0x30
+						else:
+							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						if compare == 'lessthan':
 							val |= 0x0
 							amount *= 256
@@ -1132,9 +1194,11 @@ class AIBIN:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						result += [(0x300 | val, int(amount))]
 						size += 4
+					else:
+						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
 				else:
-					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % name)
 			basic_size, basic_result = (
 				self.flags('|'.join(simple), stage, idle_order_flag_names, idle_order_flag_reverse)
 			)
