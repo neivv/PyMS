@@ -1118,21 +1118,28 @@ class AIBIN:
 			# not including the name/parens
 			def find_subgroup(text, match):
 				assert match.isalpha()
-				match = re.search(match + r'\s*\(', text)
+				match = re.search(match + r'\s*[([{]', text)
 				if match is None:
 					return (text, '')
 
 				pos = match.end()
+				open_char = text[pos - 1]
+				if open_char == '(':
+				    end_char = ')'
+				elif open_char == '[':
+				    end_char = ']'
+				elif open_char == '{':
+				    end_char = '}'
 				depth = 0
 				while pos < len(text):
-					if text[pos] == ')':
+					if text[pos] == end_char:
 						if depth == 0:
 							rest = text[:match.start()] + text[pos + 1:]
 							subgroup = text[match.end():pos]
 							return (rest, subgroup)
 						else:
 							depth -= 1
-					if text[pos] == '(':
+					if text[pos] == open_char:
 						depth += 1
 					pos += 1
 				return (text, '')
@@ -1148,8 +1155,10 @@ class AIBIN:
 			parts = [x.lower().strip() for x in data.split('|')]
 			parts = [x for x in parts if x != '']
 			parts = [x for x in parts if not x.isspace()]
-			simple = [x for x in parts if not '(' in x]
-			extended = [x for x in parts if '(' in x]
+			def is_extended(x):
+			    return '(' in x or '[' in x or '{' in x
+			simple = [x for x in parts if not is_extended(x)]
+			extended = [x for x in parts if is_extended(x)]
 			for e in extended:
 				match = re.match(r'(\w*)\((.*)\)', e)
 				if match:
@@ -1198,7 +1207,7 @@ class AIBIN:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
 				else:
-					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % name)
+					raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 			basic_size, basic_result = (
 				self.flags('|'.join(simple), stage, idle_order_flag_names, idle_order_flag_reverse)
 			)
