@@ -1089,6 +1089,9 @@ class AIBIN:
 					sz, self_flags = self.ai_idle_order_flags(subgroup, 1)
 					result += 'Self(' + self_flags + ')'
 					size += sz
+				elif ty == 5:
+					_, order_name = self.ai_order(val, 1)
+					result += 'Order(%s)' % order_name
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1203,6 +1206,9 @@ class AIBIN:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						result += [(0x300 | val, int(amount))]
 						size += 4
+					elif name == 'order':
+						_, val = self.ai_order(match.group(2).strip(), 3)
+						result += [(0x500 | val,)]
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
