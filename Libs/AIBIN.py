@@ -75,6 +75,13 @@ issue_order_flag_names = {
 }
 issue_order_flag_reverse = dict((v.lower(), k) for k, v in issue_order_flag_names.iteritems())
 
+aicontrol_names = {
+	0x0: 'wait_request_resources',
+	0x1: 'dont_wait_request_resources',
+}
+
+aicontrol_names_rev = dict((v.lower(), k) for k, v in aicontrol_names.iteritems())
+
 class AIBIN:
 	labels = [
 		'Goto',
@@ -199,6 +206,7 @@ class AIBIN:
 		'UnstartCampaign',
 		'MaxWorkers',
 		'UnderAttack',
+		'AiControl',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -323,6 +331,7 @@ class AIBIN:
 		'unstart_campaign',        #0x75 - 117
 		'max_workers',        #0x75 - 117
 		'under_attack',        #0x75 - 117
+		'aicontrol',        #0x76 - 118
 	]
 
 	separate = [
@@ -513,6 +522,7 @@ class AIBIN:
 			None, # unstart_campaign
 			[self.ai_byte], # max_workers
 			[self.ai_byte], # under_attack
+			[self.ai_control_type], # aicontrol
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -546,6 +556,7 @@ class AIBIN:
 			'issue_order_flags':[self.ai_issue_order_flags],
 			'idle_order':[self.ai_idle_order],
 			'idle_order_flags':[self.ai_idle_order_flags],
+			'aicontrol':[self.ai_control_type],
 		}
 		self.typescanbe = {
 			'byte':[self.ai_byte],
@@ -570,6 +581,7 @@ class AIBIN:
 			'issue_order_flags':[self.ai_issue_order_flags],
 			'idle_order':[self.ai_order],
 			'idle_order_flags':[self.ai_idle_order_flags],
+			'aicontrol':[self.ai_control_type],
 		}
 		self.script_endings = [0,36,39,57,65,97] #goto, stop, debug, racejump, return, kill_thread
 
@@ -1304,6 +1316,18 @@ class AIBIN:
 				radius = 0
 			v = (pos, radius)
 		return [offset + 2, v]
+
+	def ai_control_type(self, data, stage=0):
+		"""aicontrol        - values'"""
+		if stage == 0:
+			v = ord(data[0])
+		elif stage == 1:
+			v = aicontrol_names[data]
+		elif stage == 2:
+			v = struct.pack('<B', data)
+		else:
+			v = aicontrol_names_rev[data.lower()]
+		return [1, v]
 
 	def ai_building(self, data, stage=0):
 		"""building    - Same as unit type, but only units that are Buildings, Resource Miners, and Overlords"""
