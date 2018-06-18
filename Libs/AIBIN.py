@@ -207,6 +207,7 @@ class AIBIN:
 		'MaxWorkers',
 		'UnderAttack',
 		'AiControl',
+		'BringJump'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -327,11 +328,12 @@ class AIBIN:
 		'issue_order',        #0x73 - 115
 		'deaths',          #0x74 - 116
 		'idle_orders',        #0x75 - 117
-		'if_attacking',        #0x75 - 117
-		'unstart_campaign',        #0x75 - 117
-		'max_workers',        #0x75 - 117
-		'under_attack',        #0x75 - 117
-		'aicontrol',        #0x76 - 118
+		'if_attacking',        #0x76 - 118
+		'unstart_campaign',        #0x77 - 119
+		'max_workers',        #0x78 - 120
+		'under_attack',        #0x79 - 121
+		'aicontrol',        #0x7a - 122
+		'bring_jump',       #0x7b - 123
 	]
 
 	separate = [
@@ -523,6 +525,8 @@ class AIBIN:
 			[self.ai_byte], # max_workers
 			[self.ai_byte], # under_attack
 			[self.ai_control_type], # aicontrol
+			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit_or_group,
+				self.ai_area, self.ai_address], #bring_jump
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:

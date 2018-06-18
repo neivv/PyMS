@@ -124,6 +124,7 @@ attack_add max(unit_count(Military) - Byte(1), Byte(2)) Military"""),
 		('clear_combatdata','Clear previous combat data.'),
 		('nuke_rate','Tells the AI to launch nukes every Byte minutes.'),
 		('under_attack','Sets mode for the AI-under-attack variable: 0 = Never active, 1 = Default, 2 = Always active'),
+		('bring_jump','Identical to bring trigger condition, jumps as action'),
 	]),
 	('Flow control',[
 		('call','Call Block as a sub-routine.'),
