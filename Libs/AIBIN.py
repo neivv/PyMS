@@ -1474,6 +1474,7 @@ class AIBIN:
 		('Add', 8),
 		('Subtract', 9),
 		('Exactly', 10),
+		('Randomize', 11),
 	]
 
 	def ai_compare_trig(self, data, stage=0):
