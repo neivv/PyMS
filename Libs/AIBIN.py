@@ -66,6 +66,45 @@ spell_effect_names_reverse = (
 	dict((v.lower(), k) for k, v in spell_effect_names.iteritems())
 )
 
+units_dat_flags = {
+	0x1: 'Building',
+	0x2: 'Addon',
+	0x4: 'Air',
+	0x8: 'Worker',
+	0x10: 'Turret',
+	0x20: 'FlyingBuilding',
+	0x40: 'Hero',
+	0x80: 'Regeneration',
+	0x100: 'AnimatedOverlay',
+	0x200: 'Cloakable',
+	0x400: 'DualBirth',
+	0x800: 'Powerup',
+	0x1000: 'ResourceDepot',
+	0x2000: 'ResourceContainer',
+	0x4000: 'Robotic',
+	0x8000: 'Detector',
+	0x00010000: 'Organic',
+	0x00020000: 'RequiresCreep',
+	0x00040000: 'Unk40000',
+	0x00080000: 'RequiresPsi',
+	0x00100000: 'Burrower',
+	0x00200000: 'Spellcaster',
+	0x00400000: 'PermamentlyCloaked',
+	0x00800000: 'Carryable',
+	0x01000000: 'IgnoreSupplyCheck',
+	0x02000000: 'MediumOverlays',
+	0x04000000: 'LargeOverlays',
+	0x08000000: 'CanMove',
+	0x10000000: 'FullAutoAttack',
+	0x20000000: 'Invincible',
+	0x40000000: 'Mechanical',
+	0x80000000: 'UnkProducesUnits',
+}
+
+units_dat_flags_reverse = (
+	dict((v.lower(), k) for k, v in units_dat_flags.iteritems())
+)
+
 issue_order_flag_names = {
 	0x1: 'Enemies',
 	0x2: 'Own',
@@ -1044,6 +1083,11 @@ class AIBIN:
 					stack.append(current)
 					current = []
 					pos += 2
+				elif (v & 0x2f00) >> 8 == 6:
+					# u32 units.dat flags
+					amt, = struct.unpack('<I', data[pos + 2:pos + 6])
+					current += [(v, amt)]
+					pos += 6
 				else:
 					current += [(v,)]
 					pos += 2
@@ -1108,6 +1152,13 @@ class AIBIN:
 				elif ty == 5:
 					_, order_name = self.ai_order(val, 1)
 					result += 'Order(%s)' % order_name
+				elif ty == 6:
+					flags = extended[1]
+					if val == 0:
+						result += 'UnitFlags(%s)' % flags_to_str(flags, units_dat_flags)
+					elif val == 1:
+						result += 'WithoutUnitFlags(%s)' % flags_to_str(flags, units_dat_flags)
+					size += 4
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1127,6 +1178,9 @@ class AIBIN:
 					sz, res = self.ai_idle_order_flags(x[1], 2)
 					size += sz
 					result += res
+				if (x[0] & 0x2f00) >> 8 == 6:
+					result += struct.pack('<I', x[1])
+					size += 4
 			return [size, result]
 		elif stage == 3:
 			result = []
@@ -1174,10 +1228,25 @@ class AIBIN:
 			parts = [x.lower().strip() for x in data.split('|')]
 			parts = [x for x in parts if x != '']
 			parts = [x for x in parts if not x.isspace()]
-			def is_extended(x):
-			    return '(' in x or '[' in x or '{' in x
-			simple = [x for x in parts if not is_extended(x)]
-			extended = [x for x in parts if is_extended(x)]
+			simple = []
+			extended = []
+			depth = 0
+			for x in parts:
+				old_depth = depth
+				depth += x.count('(')
+				depth += x.count('[')
+				depth += x.count('{')
+				depth -= x.count(')')
+				depth -= x.count(']')
+				depth -= x.count('}')
+				if old_depth == 0 and not ('(' in x or '[' in x or '{' in x):
+					simple.append(x)
+				else:
+					if old_depth == 0:
+						extended.append(x)
+					else:
+						extended[-1] = extended[-1] + '|' + x
+
 			for e in extended:
 				match = re.match(r'(\w*)\((.*)\)', e)
 				if match:
@@ -1225,6 +1294,14 @@ class AIBIN:
 					elif name == 'order':
 						_, val = self.ai_order(match.group(2).strip(), 3)
 						result += [(0x500 | val,)]
+					elif name == 'unitflags' or name == 'withoutunitflags':
+						flags = match.group(2)
+						val = flags_from_str(flags, units_dat_flags_reverse)
+						if name == 'unitflags':
+							result += [(0x600, val)]
+						else:
+							result += [(0x601, val)]
+						size += 4
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
@@ -2811,7 +2888,7 @@ class BWBIN(AIBIN):
 """ Formats an integer to a flag string, e.g. 'a | b | c | 0x40' """
 def flags_to_str(data, names):
 	v = ''
-	for i in range(16):
+	for i in range(32):
 		mask = 1 << i
 		if data & mask != 0:
 			if v != '':
