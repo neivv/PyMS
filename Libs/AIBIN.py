@@ -105,6 +105,17 @@ units_dat_flags_reverse = (
 	dict((v.lower(), k) for k, v in units_dat_flags.iteritems())
 )
 
+idle_orders_targeting_flags = {
+	0x1: 'OtherUnit',
+	0x2: 'Enemy',
+	0x4: 'Ally',
+	0x8: 'Own',
+	0x10: 'Nothing',
+}
+idle_orders_targeting_flags_reverse = (
+	dict((v.lower(), k) for k, v in idle_orders_targeting_flags.iteritems())
+)
+
 issue_order_flag_names = {
 	0x1: 'Enemies',
 	0x2: 'Own',
@@ -1159,6 +1170,8 @@ class AIBIN:
 					elif val == 1:
 						result += 'WithoutUnitFlags(%s)' % flags_to_str(flags, units_dat_flags)
 					size += 4
+				elif ty == 7:
+					result += 'Targeting(%s)' % flags_to_str(val, idle_orders_targeting_flags)
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1302,6 +1315,12 @@ class AIBIN:
 						else:
 							result += [(0x601, val)]
 						size += 4
+					elif name == 'targeting':
+						flags = match.group(2)
+						val = flags_from_str(flags, idle_orders_targeting_flags_reverse)
+						if val >= 0x100:
+							raise PyMSError('Parameter', 'Invalid idle_orders targeting flag %s' % e)
+						result += [(0x700 | val,)]
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
