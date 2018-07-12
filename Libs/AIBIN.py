@@ -565,7 +565,7 @@ class AIBIN:
 			[self.ai_order, self.ai_word, self.ai_unit_or_group,
 				self.ai_area, self.ai_area, self.ai_unit_or_group,
 				self.ai_issue_order_flags], # issue_order
-			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit,
+			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit_or_group,
 				self.ai_address], # deaths
 			[self.ai_idle_order, self.ai_word, self.ai_word, self.ai_unit_or_group,
 				self.ai_word, self.ai_unit_or_group, self.ai_byte,
