@@ -150,6 +150,7 @@ attack_add max(unit_count(Military) - Byte(1), Byte(2)) Military"""),
 	('Multiple threads',[
 		('expand','Run code at Block for expansion number Byte.'),
 		('multirun','Run simultaneously code (so in another thread) at Block.'),
+		('create_script','Creates a new thread, arguments are "block, player, area, town, resarea". To use values from current thread, pass player = 255, area = (65534, 65534), town = 255, resarea = 255'),
 	]),
 	('Miscellaneous',[
 		('create_nuke','Create a nuke. Should only be used in campaign scripts.'),

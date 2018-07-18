@@ -257,7 +257,8 @@ class AIBIN:
 		'MaxWorkers',
 		'UnderAttack',
 		'AiControl',
-		'BringJump'
+		'BringJump',
+		'CreateScript',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -384,6 +385,7 @@ class AIBIN:
 		'under_attack',        #0x79 - 121
 		'aicontrol',        #0x7a - 122
 		'bring_jump',       #0x7b - 123
+		'create_script',       #0x7c - 124
 	]
 
 	separate = [
@@ -577,6 +579,8 @@ class AIBIN:
 			[self.ai_control_type], # aicontrol
 			[self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit_or_group,
 				self.ai_area, self.ai_address], #bring_jump
+			# create_script
+			[self.ai_address, self.ai_byte, self.ai_area, self.ai_byte, self.ai_byte],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
