@@ -259,6 +259,9 @@ class AIBIN:
 		'AiControl',
 		'BringJump',
 		'CreateScript',
+		'PlayerJump',
+		'Kills',
+		'WaitRand'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -386,6 +389,9 @@ class AIBIN:
 		'aicontrol',        #0x7a - 122
 		'bring_jump',       #0x7b - 123
 		'create_script',       #0x7c - 124
+		'player_jump', #0x7d
+		'kills', #0x7e
+		'wait_rand', #0x7f
 	]
 
 	separate = [
@@ -581,6 +587,13 @@ class AIBIN:
 				self.ai_area, self.ai_address], #bring_jump
 			# create_script
 			[self.ai_address, self.ai_byte, self.ai_area, self.ai_byte, self.ai_byte],
+		        # player_jump
+			[self.ai_string,self.ai_address],
+			#kills
+			[self.ai_byte, self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit_or_group,
+				self.ai_address],
+			#wait_rand
+			[self.ai_dword,self.ai_dword]
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
