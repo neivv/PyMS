@@ -261,7 +261,10 @@ class AIBIN:
 		'CreateScript',
 		'PlayerJump',
 		'Kills',
-		'WaitRand'
+		'WaitRand',
+		'UpgradeJump',
+		'TechJump',
+		'RandomCall',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -391,7 +394,10 @@ class AIBIN:
 		'create_script',       #0x7c - 124
 		'player_jump', #0x7d
 		'kills', #0x7e
-		'wait_rand', #0x7f
+		'wait_rand', #0x7f,
+		'upgrade_jump', #0x80
+		'tech_jump', #0x81
+		'random_call', #0x82
 	]
 
 	separate = [
@@ -593,7 +599,13 @@ class AIBIN:
 			[self.ai_byte, self.ai_byte, self.ai_compare_trig, self.ai_dword, self.ai_unit_or_group,
 				self.ai_address],
 			#wait_rand
-			[self.ai_dword,self.ai_dword]
+			[self.ai_dword,self.ai_dword],
+			#upgrade_jump
+			[self.ai_byte, self.ai_compare_trig, self.ai_upgrade, self.ai_byte, self.ai_address],
+			#tech_jump
+			[self.ai_byte, self.ai_compare_trig, self.ai_technology, self.ai_byte, self.ai_address],
+			#random_call
+			[self.ai_byte, self.ai_address],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
