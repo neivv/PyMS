@@ -1600,6 +1600,10 @@ class AIBIN:
 		('Subtract', 9),
 		('Exactly', 10),
 		('Randomize', 11),
+
+		('AtLeast_Call',128),
+		('AtMost_Call',129),
+		('Exactly_Call',138),
 	]
 
 	def ai_compare_trig(self, data, stage=0):
