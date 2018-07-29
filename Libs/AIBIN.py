@@ -1182,6 +1182,8 @@ class AIBIN:
 						ty = 'Health'
 					elif ty_id == 3:
 						ty = 'Energy'
+					elif ty_id == 4:
+						ty = 'Hangar'
 					result += '%s(%s, %s)' % (ty, compare, amount)
 					size += 4
 				elif ty == 4:
@@ -1302,7 +1304,7 @@ class AIBIN:
 							result += [(0x100 | val,)]
 						else:
 							result += [(0x200 | val,)]
-					elif name in ('hp', 'shields', 'health', 'energy'):
+					elif name in ('hp', 'shields', 'health', 'energy', 'hangar'):
 						params = match.group(2).split(',')
 						if len(params) != 2:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
@@ -1317,6 +1319,8 @@ class AIBIN:
 							val |= 0x20
 						elif name == 'energy':
 							val |= 0x30
+						elif name == 'hangar':
+							val |= 0x40
 						else:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						if compare == 'lessthan':
