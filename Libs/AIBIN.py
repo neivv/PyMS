@@ -265,6 +265,7 @@ class AIBIN:
 		'UpgradeJump',
 		'TechJump',
 		'RandomCall',
+		'AttackRand'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -398,6 +399,7 @@ class AIBIN:
 		'upgrade_jump', #0x80
 		'tech_jump', #0x81
 		'random_call', #0x82
+		'attack_rand', #0x83
 	]
 
 	separate = [
@@ -606,6 +608,8 @@ class AIBIN:
 			[self.ai_byte, self.ai_compare_trig, self.ai_technology, self.ai_byte, self.ai_address],
 			#random_call
 			[self.ai_byte, self.ai_address],
+			#attack_rand
+			[self.ai_byte, self.ai_byte, self.ai_military],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
