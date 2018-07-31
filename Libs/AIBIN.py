@@ -1128,6 +1128,11 @@ class AIBIN:
 					amt, = struct.unpack('<I', data[pos + 2:pos + 6])
 					current += [(v, amt)]
 					pos += 6
+				elif (v & 0x2f00) >> 8 == 8:
+					# u16 low, u16 high
+					vars = struct.unpack('<HH', data[pos + 2:pos + 6])
+					current += [(v, vars)]
+					pos += 6
 				else:
 					current += [(v,)]
 					pos += 2
@@ -1203,6 +1208,9 @@ class AIBIN:
 					size += 4
 				elif ty == 7:
 					result += 'Targeting(%s)' % flags_to_str(val, idle_orders_targeting_flags)
+				elif ty == 8:
+					result += "RandomRate(%s, %s)" % (extended[1][0],extended[1][1])
+					size += 4
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1224,6 +1232,9 @@ class AIBIN:
 					result += res
 				if (x[0] & 0x2f00) >> 8 == 6:
 					result += struct.pack('<I', x[1])
+					size += 4
+				if (x[0] & 0x2f00) >> 8 == 8:
+					result += struct.pack('<HH', x[1][0], x[1][1])
 					size += 4
 			return [size, result]
 		elif stage == 3:
@@ -1354,6 +1365,11 @@ class AIBIN:
 						if val >= 0x100:
 							raise PyMSError('Parameter', 'Invalid idle_orders targeting flag %s' % e)
 						result += [(0x700 | val,)]
+					elif name == 'randomrate':
+						params = match.group(2).split(',')
+						arg1 = int(params[0])
+						arg2 = int(params[1])
+						result += [(0x800, (arg1,arg2))]
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
