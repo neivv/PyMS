@@ -1370,6 +1370,7 @@ class AIBIN:
 						arg1 = int(params[0])
 						arg2 = int(params[1])
 						result += [(0x800, (arg1,arg2))]
+						size += 4
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
