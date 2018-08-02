@@ -265,7 +265,8 @@ class AIBIN:
 		'UpgradeJump',
 		'TechJump',
 		'RandomCall',
-		'AttackRand'
+		'AttackRand',
+		'Supply'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -400,6 +401,7 @@ class AIBIN:
 		'tech_jump', #0x81
 		'random_call', #0x82
 		'attack_rand', #0x83
+		'supply', #0x84
 	]
 
 	separate = [
@@ -610,6 +612,10 @@ class AIBIN:
 			[self.ai_byte, self.ai_address],
 			#attack_rand
 			[self.ai_byte, self.ai_byte, self.ai_military],
+			#supply
+			[self.ai_byte, self.ai_compare_trig, self.ai_word, self.ai_supply,
+				self.ai_unit_or_group, self.ai_race, self.ai_address]
+
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -635,6 +641,8 @@ class AIBIN:
 			'string':[self.ai_string],
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
+			'race':[self.ai_race],
+			'supply_type':[self.ai_supply],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -661,6 +669,8 @@ class AIBIN:
 			'string':[self.ai_string],
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
+			'race':[self.ai_race],
+			'supply_type':[self.ai_supply],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -1625,7 +1635,7 @@ class AIBIN:
 		('Subtract', 9),
 		('Exactly', 10),
 		('Randomize', 11),
-
+		('InUnits',20),
 		('AtLeast_Call',128),
 		('AtMost_Call',129),
 		('Exactly_Call',138),
@@ -1646,6 +1656,57 @@ class AIBIN:
 			pair = next((x for x in self.trig_compare_modes if x[0] == data), None)
 			if pair is None:
 				raise PyMSError('Parameter', 'Unknown compare %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	races = [
+		('Zerg', 0),
+		('Terran', 1),
+		('Protoss', 2),
+		('Any_Total', 16),
+		('Any_Max', 17),
+	]
+
+	def ai_race(self, data, stage=0):
+		"""race        - One of Zerg, Terran or Protoss"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.races if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for race' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.races if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown race %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	supply_types = [
+		('Provided', 0),
+		('Used', 1),
+		('Max', 2),
+		('InUnits', 3),
+	]
+
+	def ai_supply(self, data, stage=0):
+		"""supply_type        - One of Provided, Used, Max or InUnits"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.supply_types if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for supply type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.supply_types if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown supply type %s' % data)
 			v = pair[1]
 		return [1,v]
 
