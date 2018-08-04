@@ -266,7 +266,9 @@ class AIBIN:
 		'TechJump',
 		'RandomCall',
 		'AttackRand',
-		'Supply'
+		'Supply',
+		'Time',
+		'Resources',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -401,7 +403,9 @@ class AIBIN:
 		'tech_jump', #0x81
 		'random_call', #0x82
 		'attack_rand', #0x83
-		'supply', #0x84
+		'supply', #0x84,
+		'time', #0x85,
+		'resources', #0x86
 	]
 
 	separate = [
@@ -614,7 +618,11 @@ class AIBIN:
 			[self.ai_byte, self.ai_byte, self.ai_military],
 			#supply
 			[self.ai_byte, self.ai_compare_trig, self.ai_word, self.ai_supply,
-				self.ai_unit_or_group, self.ai_race, self.ai_address]
+				self.ai_unit_or_group, self.ai_race, self.ai_address],
+			#time
+			[self.ai_compare_trig,self.ai_dword,self.ai_time_type,self.ai_address],
+			#resources
+			[self.ai_byte, self.ai_compare_trig,self.ai_resource_type,self.ai_dword,self.ai_address],
 
 		]
 		self.builds = []
@@ -643,6 +651,8 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'supply_type':[self.ai_supply],
+			'time_type':[self.ai_time_type],
+			'resource':[self.ai_resource_type],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -671,6 +681,8 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'supply_type':[self.ai_supply],
+			'time_type':[self.ai_time_type],
+			'resource':[self.ai_resource_type],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -1635,7 +1647,6 @@ class AIBIN:
 		('Subtract', 9),
 		('Exactly', 10),
 		('Randomize', 11),
-		('InUnits',20),
 		('AtLeast_Call',128),
 		('AtMost_Call',129),
 		('Exactly_Call',138),
@@ -1707,6 +1718,53 @@ class AIBIN:
 			pair = next((x for x in self.supply_types if x[0] == data), None)
 			if pair is None:
 				raise PyMSError('Parameter', 'Unknown supply type %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	time_types = [
+		('Frames', 0),
+		('Minutes', 1),
+	]
+
+	def ai_time_type(self, data, stage=0):
+		"""time_type        - Frames or MInutes"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.time_types if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for time type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.time_types if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown  time type %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	res_types = [
+		('Ore', 0),
+		('Gas', 1),
+		('Any', 2),
+	]
+
+	def ai_resource_type(self, data, stage=0):
+		"""resource        - Ore, Gas, or Any"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.res_types if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for resource type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.res_types if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown  resource type %s' % data)
 			v = pair[1]
 		return [1,v]
 
