@@ -408,8 +408,12 @@ class AIBIN:
 		'resources', #0x86
 	]
 
-	separate = [
+	wait_commands = [
 		'wait',
+		'wait_rand',
+	]
+
+	separate = [
 		'goto',
 		'debug',
 		'race_jump',
@@ -2142,9 +2146,11 @@ class AIBIN:
 									if params and dat:
 										for d,p in zip(dat,params):
 											if p == self.ai_address:
+												# Parse script parameter which jumps to a label
 												aisize += 2
 												match = re.match('\\A(.+):(.+)\\Z', d)
 												if match:
+													# Full label
 													cid,label = match.group(1),match.group(2)
 													if cid in default_ais:
 														cid = default_ais[cid]
@@ -2199,6 +2205,7 @@ class AIBIN:
 														findgoto[cid] = odict()
 													findgoto[cid][label] = [True,len(ai[5])-1]
 												else:
+													# ..else `d` is a simple label
 													if curlabel:
 														if d in curlabel:
 															add_warning(PyMSWarning('Interpreting',"All loops require at least 1 wait statement. Block '%s' seems to not have one" % d, id='loop'))
@@ -2221,13 +2228,14 @@ class AIBIN:
 												cs = parse_param(p, d, n, line)
 												ai[4][-1].append(cs[1])
 												aisize += cs[0]
-									if cmd != 'wait' and cmd in self.separate:
+									if cmd in self.separate:
 										notused = (n,line)
-									if cmd.lower() in self.separate:
+									if cmd in self.separate or cmd in self.wait_commands:
 										curlabel = []
 									cmdn += 1
 									nextinfo = None
 									continue
+								# Match if the line is a label
 								match = re.match('\\A--\s*(.+)\s*--\\s*(?:\\{(.+)\\})?\\Z', line)
 								if match:
 									notused = False
