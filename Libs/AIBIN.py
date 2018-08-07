@@ -269,6 +269,8 @@ class AIBIN:
 		'Supply',
 		'Time',
 		'Resources',
+		'SetId',
+		'RemoveBuild',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -405,7 +407,9 @@ class AIBIN:
 		'attack_rand', #0x83
 		'supply', #0x84,
 		'time', #0x85,
-		'resources', #0x86
+		'resources', #0x86,
+		'set_id', #0x87,
+		'remove_build', #0x88
 	]
 
 	wait_commands = [
@@ -627,6 +631,10 @@ class AIBIN:
 			[self.ai_compare_trig,self.ai_dword,self.ai_time_type,self.ai_address],
 			#resources
 			[self.ai_byte, self.ai_compare_trig,self.ai_resource_type,self.ai_dword,self.ai_address],
+			#set_id
+			[self.ai_byte],
+			#remove_build
+			[self.ai_byte,self.ai_unit_or_group,self.ai_byte],
 
 		]
 		self.builds = []
