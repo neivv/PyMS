@@ -271,6 +271,7 @@ class AIBIN:
 		'Resources',
 		'SetId',
 		'RemoveBuild',
+		'Guard'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -410,6 +411,7 @@ class AIBIN:
 		'resources', #0x86,
 		'set_id', #0x87,
 		'remove_build', #0x88
+		'guard', #0x89
 	]
 
 	wait_commands = [
@@ -635,7 +637,8 @@ class AIBIN:
 			[self.ai_byte],
 			#remove_build
 			[self.ai_byte,self.ai_unit_or_group,self.ai_byte],
-
+			#guard
+			[self.ai_unit,self.ai_point,self.ai_byte,self.ai_byte,self.ai_byte],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
