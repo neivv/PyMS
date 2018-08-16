@@ -271,7 +271,8 @@ class AIBIN:
 		'Resources',
 		'SetId',
 		'RemoveBuild',
-		'Guard'
+		'Guard',
+		'BaseLayout'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -411,7 +412,8 @@ class AIBIN:
 		'resources', #0x86,
 		'set_id', #0x87,
 		'remove_build', #0x88
-		'guard', #0x89
+		'guard', #0x89,
+		'base_layout', #0x8a,
 	]
 
 	wait_commands = [
@@ -639,6 +641,8 @@ class AIBIN:
 			[self.ai_byte,self.ai_unit_or_group,self.ai_byte],
 			#guard
 			[self.ai_unit,self.ai_point,self.ai_byte,self.ai_byte,self.ai_byte],
+			#base_layout
+			[self.ai_unit,self.ai_layout_action,self.ai_area,self.ai_byte,self.ai_byte]
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -665,6 +669,7 @@ class AIBIN:
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
+			'layout_action':[self.ai_layout_action],
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
@@ -695,6 +700,7 @@ class AIBIN:
 			'compare':[self.ai_compare],
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
+			'layout_action':[self.ai_layout_action],
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
@@ -1682,6 +1688,29 @@ class AIBIN:
 			pair = next((x for x in self.trig_compare_modes if x[0] == data), None)
 			if pair is None:
 				raise PyMSError('Parameter', 'Unknown compare %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	layout_actions = [
+		('Set', 0),
+		('Remove', 1),
+	]
+
+	def ai_layout_action(self, data, stage=0):
+		"""layout_action        - Set or Remove"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.layout_actions if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for layout action' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.layout_actions if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown action %s' % data)
 			v = pair[1]
 		return [1,v]
 
