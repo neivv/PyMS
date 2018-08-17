@@ -272,7 +272,8 @@ class AIBIN:
 		'SetId',
 		'RemoveBuild',
 		'Guard',
-		'BaseLayout'
+		'BaseLayout',
+		'Print'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -414,6 +415,7 @@ class AIBIN:
 		'remove_build', #0x88
 		'guard', #0x89,
 		'base_layout', #0x8a,
+		'print', #0x8b,
 	]
 
 	wait_commands = [
@@ -642,7 +644,9 @@ class AIBIN:
 			#guard
 			[self.ai_unit,self.ai_point,self.ai_byte,self.ai_byte,self.ai_byte],
 			#base_layout
-			[self.ai_unit,self.ai_layout_action,self.ai_area,self.ai_byte,self.ai_byte]
+			[self.ai_unit,self.ai_layout_action,self.ai_area,self.ai_byte,self.ai_byte],
+			#print
+			[self.ai_string],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
