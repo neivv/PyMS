@@ -273,7 +273,8 @@ class AIBIN:
 		'RemoveBuild',
 		'Guard',
 		'BaseLayout',
-		'Print'
+		'Print',
+		'Attacking',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -416,6 +417,7 @@ class AIBIN:
 		'guard', #0x89,
 		'base_layout', #0x8a,
 		'print', #0x8b,
+		'attacking', #0x8c,
 	]
 
 	wait_commands = [
@@ -647,6 +649,8 @@ class AIBIN:
 			[self.ai_unit,self.ai_layout_action,self.ai_area,self.ai_byte,self.ai_byte],
 			#print
 			[self.ai_string],
+			#attacking
+			[self.ai_bool_compare,self.ai_address],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -674,6 +678,7 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'layout_action':[self.ai_layout_action],
+			'bool_compare''':[self.ai_bool_compare],
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
@@ -705,6 +710,7 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'layout_action':[self.ai_layout_action],
+			'bool_compare':[self.ai_bool_compare],
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
@@ -1692,6 +1698,33 @@ class AIBIN:
 			pair = next((x for x in self.trig_compare_modes if x[0] == data), None)
 			if pair is None:
 				raise PyMSError('Parameter', 'Unknown compare %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	bool_comparisons = [
+		('False', 0),
+		('True', 1),
+		('False_Wait', 64),
+		('True_Wait', 65),
+		('False_Call', 128),
+		('True_Call', 129),
+	]
+
+	def ai_bool_compare(self, data, stage=0):
+		"""bool_compare        - True or False"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.bool_comparisons if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected modifier %d for attacking' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.bool_comparisons if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown modifier %s' % data)
 			v = pair[1]
 		return [1,v]
 
