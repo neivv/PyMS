@@ -128,6 +128,8 @@ issue_order_flag_reverse = dict((v.lower(), k) for k, v in issue_order_flag_name
 aicontrol_names = {
 	0x0: 'wait_request_resources',
 	0x1: 'dont_wait_request_resources',
+	0x2: 'build_gas',
+	0x3: 'dont_build_gas',
 }
 
 aicontrol_names_rev = dict((v.lower(), k) for k, v in aicontrol_names.iteritems())
