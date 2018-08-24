@@ -61,6 +61,7 @@ spell_effect_names = {
 	0x20: 'Blind',
 	0x40: 'Matrix',
 	0x80: 'Maelstrom',
+	0x4000: 'Stim',
 }
 spell_effect_names_reverse = (
 	dict((v.lower(), k) for k, v in spell_effect_names.iteritems())
@@ -1213,7 +1214,7 @@ class AIBIN:
 				if result != '':
 					result += ' | '
 				ty = (extended[0] & 0x2f00) >> 8
-				val = extended[0] & 0xff
+				val = extended[0] & 0xc0ff
 				if ty == 1:
 					result += 'SpellEffects(%s)' % flags_to_str(val, spell_effect_names)
 				elif ty == 2:
@@ -1368,7 +1369,7 @@ class AIBIN:
 					if name == 'spelleffects' or name == 'withoutspelleffects':
 						flags = match.group(2)
 						val = flags_from_str(flags, spell_effect_names_reverse)
-						if val >= 0x100:
+						if (val & 0x2f00) != 0:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						if name == 'spelleffects':
 							result += [(0x100 | val,)]
