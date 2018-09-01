@@ -1204,6 +1204,11 @@ class AIBIN:
 					vars = struct.unpack('<HH', data[pos + 2:pos + 6])
 					current += [(v, vars)]
 					pos += 6
+				elif (v & 0x2f00) >> 8 == 9:
+					#u8,u8,u16,u16
+					vars = struct.unpack('<BHHB',data[pos+2:pos+8])
+					current += [(v,vars)]
+					pos += 8
 				else:
 					current += [(v,)]
 					pos += 2
@@ -1282,6 +1287,17 @@ class AIBIN:
 				elif ty == 8:
 					result += "RandomRate(%s, %s)" % (extended[1][0],extended[1][1])
 					size += 4
+				elif ty == 9:
+					compare = 'BROKEN'
+					c_id = extended[1][0]
+					if c_id == 0:
+						compare = 'AtMost'
+					elif c_id == 1:
+						compare = 'AtLeast'
+					elif c_id == 2:
+						compare = 'Exactly'
+					result += "Count(%s, %s, %s, %s)" % (compare, extended[1][1], extended[1][2], extended[1][3])
+					size += 6
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1307,6 +1323,9 @@ class AIBIN:
 				if (x[0] & 0x2f00) >> 8 == 8:
 					result += struct.pack('<HH', x[1][0], x[1][1])
 					size += 4
+				if(x[0] & 0x2f00) >> 8 == 9:
+					result += struct.pack('<BHHB',x[1][0],x[1][1],x[1][2],x[1][3])
+					size += 6
 			return [size, result]
 		elif stage == 3:
 			result = []
@@ -1442,6 +1461,22 @@ class AIBIN:
 						arg2 = int(params[1])
 						result += [(0x800, (arg1,arg2))]
 						size += 4
+					elif name == 'count':
+						params = match.group(2).split(',')
+						compare = params[0]
+						val = 0
+						if compare == 'atmost':
+							val |= 0x0
+						elif compare == 'atleast':
+							val |= 0x1
+						elif compare == 'exactly':
+							val |= 0x2
+						arg1 = int(val)
+						arg2 = int(params[1])
+						arg3 = int(params[2])
+						arg4 = int(params[3])
+						result += [(0x900, (arg1,arg2,arg3,arg4))]
+						size += 6
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 					size += 2
