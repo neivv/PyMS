@@ -1291,10 +1291,10 @@ class AIBIN:
 					compare = 'BROKEN'
 					c_id = extended[1][0]
 					if c_id == 0:
-						compare = 'AtMost'
-					elif c_id == 1:
 						compare = 'AtLeast'
-					elif c_id == 2:
+					elif c_id == 1:
+						compare = 'AtMost'
+					elif c_id == 10:
 						compare = 'Exactly'
 					result += "Count(%s, %s, %s, %s)" % (compare, extended[1][1], extended[1][2], extended[1][3])
 					size += 6
@@ -1465,12 +1465,12 @@ class AIBIN:
 						params = match.group(2).split(',')
 						compare = params[0]
 						val = 0
-						if compare == 'atmost':
+						if compare == 'atleast':
 							val |= 0x0
-						elif compare == 'atleast':
+						elif compare == 'atmost':
 							val |= 0x1
 						elif compare == 'exactly':
-							val |= 0x2
+							val |= 0xa
 						arg1 = int(val)
 						arg2 = int(params[1])
 						arg3 = int(params[2])
