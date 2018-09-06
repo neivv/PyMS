@@ -1730,6 +1730,9 @@ class AIBIN:
 		('AtLeast_Call',128),
 		('AtMost_Call',129),
 		('Exactly_Call',138),
+		('AtLeast_Wait',64),
+		('AtMost_Wait',65),
+		('Exactly_Wait',74),
 	]
 
 	def ai_compare_trig(self, data, stage=0):
