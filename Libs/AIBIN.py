@@ -281,6 +281,7 @@ class AIBIN:
 		'BaseLayout',
 		'UnitAvail',
 		'FillBunkers',
+		'Ping'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -427,6 +428,7 @@ class AIBIN:
 		'base_layout', #0x8d,
 		'unit_avail', #0x8e,
 		'load_bunkers', #0x8f,
+		'ping', #0x90,
 
 	]
 
@@ -666,7 +668,9 @@ class AIBIN:
 			#unit_avail
 			[self.ai_byte, self.ai_compare_trig, self.ai_avail, self.ai_unit, self.ai_address],
 			#load_bunkers
-			[self.ai_area,self.ai_unit,self.ai_byte,self.ai_unit,self.ai_byte,self.ai_byte]
+			[self.ai_area,self.ai_unit,self.ai_byte,self.ai_unit,self.ai_byte,self.ai_byte],
+			#ping
+			[self.ai_word,self.ai_word,self.ai_byte],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
