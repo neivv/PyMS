@@ -1274,6 +1274,8 @@ class AIBIN:
 						ty = 'Energy'
 					elif ty_id == 4:
 						ty = 'Hangar'
+					elif ty_id == 5:
+						ty = 'Cargo'
 					result += '%s(%s, %s)' % (ty, compare, amount)
 					size += 4
 				elif ty == 4:
@@ -1430,6 +1432,8 @@ class AIBIN:
 							ty_id = 0x3
 						elif name == 'hangar':
 							ty_id = 0x4
+						elif name == 'cargo':
+							ty_id = 0x5
 						else:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						if compare == 'lessthan':
