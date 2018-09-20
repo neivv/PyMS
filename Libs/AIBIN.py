@@ -1250,19 +1250,20 @@ class AIBIN:
 					compare = 'BROKEN'
 					c_id = val & 0xf
 					ty_id = (val >> 4) & 0xf
-					amount = float(extended[1])
+					# Raw Hp/shield/etc values are converted to displayed values
+					fixed_point_decimal = (c_id == 0 or c_id == 1) and (ty_id < 4)
+					if fixed_point_decimal:
+						amount = str(float(extended[1]) / 256)
+					else:
+						amount = str(int(extended[1]))
 					if c_id == 0:
 						compare = 'LessThan'
-						amount = str(amount / 256)
 					elif c_id == 1:
 						compare = 'GreaterThan'
-						amount = str(amount / 256)
 					elif c_id == 2:
 						compare = 'LessThanPercent'
-						amount = str(int(amount))
 					elif c_id == 3:
 						compare = 'GreaterThanPercent'
-						amount = str(int(amount))
 					if ty_id == 0:
 						ty = 'Hp'
 					elif ty_id == 1:
@@ -1413,37 +1414,39 @@ class AIBIN:
 							result += [(0x100 | val,)]
 						else:
 							result += [(0x200 | val,)]
-					elif name in ('hp', 'shields', 'health', 'energy', 'hangar'):
+					elif name in ('hp', 'shields', 'health', 'energy', 'hangar','cargo'):
 						params = match.group(2).split(',')
 						if len(params) != 2:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						compare = params[0]
 						amount = float(params[1])
-						val = 0
 						if name == 'hp':
-							pass
+							ty_id = 0x0
 						elif name == 'shields':
-							val |= 0x10
+							ty_id = 0x1
 						elif name == 'health':
-							val |= 0x20
+							ty_id = 0x2
 						elif name == 'energy':
-							val |= 0x30
+							ty_id = 0x3
 						elif name == 'hangar':
-							val |= 0x40
+							ty_id = 0x4
 						else:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
 						if compare == 'lessthan':
-							val |= 0x0
-							amount *= 256
+							compare_id = 0x0
 						elif compare == 'greaterthan':
-							val |= 0x1
-							amount *= 256
+							compare_id = 0x1
 						elif compare == 'lessthanpercent':
-							val |= 0x2
+							compare_id = 0x2
 						elif compare == 'greaterthanpercent':
-							val |= 0x3
+							compare_id = 0x3
 						else:
 							raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
+						val = compare_id | (ty_id << 4)
+						# Raw Hp/shield/etc values are converted from displayed values
+						fixed_point_decimal = (compare_id == 0 or compare_id == 1) and (ty_id < 4)
+						if fixed_point_decimal:
+							amount *= 256
 						result += [(0x300 | val, int(amount))]
 						size += 4
 					elif name == 'order':
