@@ -117,6 +117,17 @@ idle_orders_targeting_flags_reverse = (
 	dict((v.lower(), k) for k, v in idle_orders_targeting_flags.iteritems())
 )
 
+tile_flags = {
+	0x1: 'Walkable',
+	0x2: 'Unbuildable',
+	0x4: 'Creep',
+	0x8: 'Ramp',
+}
+
+tile_flags_reverse = (
+	dict((v.lower(), k) for k, v in tile_flags.iteritems())
+)
+
 issue_order_flag_names = {
 	0x1: 'Enemies',
 	0x2: 'Own',
@@ -1217,6 +1228,11 @@ class AIBIN:
 					vars = struct.unpack('<BHHB',data[pos+2:pos+8])
 					current += [(v,vars)]
 					pos += 8
+				elif (v & 0x2f00) >> 8 == 10:
+					# u8 tile flags
+					amt, = struct.unpack('<B', data[pos + 2:pos + 3])
+					current += [(v, amt)]
+					pos += 3
 				else:
 					current += [(v,)]
 					pos += 2
@@ -1309,6 +1325,13 @@ class AIBIN:
 						compare = 'Exactly'
 					result += "Count(%s, %s, %s, %s)" % (compare, extended[1][1], extended[1][2], extended[1][3])
 					size += 6
+				elif ty == 10:
+					flags = extended[1]
+					if val == 0:
+						result += 'TileFlags(%s)' % flags_to_str(flags, tile_flags)
+					elif val == 1:
+						result += 'WithoutTileFlags(%s)' % flags_to_str(flags, tile_flags)
+					size += 1
 				else:
 					raise PyMSError('Parameter', 'Invalid idle_orders encoding')
 				size += 2
@@ -1337,6 +1360,9 @@ class AIBIN:
 				if(x[0] & 0x2f00) >> 8 == 9:
 					result += struct.pack('<BHHB',x[1][0],x[1][1],x[1][2],x[1][3])
 					size += 6
+				if(x[0] & 0x2f00) >> 8 == 10:
+					result += struct.pack('B',x[1])
+					size += 1
 			return [size, result]
 		elif stage == 3:
 			result = []
@@ -1491,6 +1517,14 @@ class AIBIN:
 						arg3 = int(params[2])
 						arg4 = int(params[3])
 						result += [(0x900, (arg1,arg2,arg3,arg4))]
+					elif name == 'tileflags' or name == 'withouttileflags':
+						flags = match.group(2)
+						val = flags_from_str(flags, tile_flags_reverse)
+						if name == 'tileflags':
+							result += [(0xa00, val)]
+						else:
+							result += [(0xa01, val)]
+						size += 1
 						size += 6
 					else:
 						raise PyMSError('Parameter', 'Invalid idle_orders flag %s' % e)
