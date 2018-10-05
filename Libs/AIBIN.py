@@ -292,7 +292,9 @@ class AIBIN:
 		'BaseLayout',
 		'UnitAvail',
 		'FillBunkers',
-		'Ping'
+		'Ping',
+		'RevealArea',
+
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -440,7 +442,7 @@ class AIBIN:
 		'unit_avail', #0x8e,
 		'load_bunkers', #0x8f,
 		'ping', #0x90,
-
+		'reveal_area', #0x91,
 	]
 
 	wait_commands = [
@@ -682,6 +684,8 @@ class AIBIN:
 			[self.ai_area,self.ai_unit,self.ai_byte,self.ai_unit,self.ai_byte,self.ai_byte],
 			#ping
 			[self.ai_word,self.ai_word,self.ai_byte],
+			#reveal_area
+			[self.ai_byte,self.ai_area,self.ai_word,self.ai_reveal_type]
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -714,6 +718,7 @@ class AIBIN:
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
+			'reveal_type':[self.ai_reveal_type],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -747,6 +752,7 @@ class AIBIN:
 			'supply_type':[self.ai_supply],
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
+			'reveal_type':[self.ai_reveal_type],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -1973,6 +1979,29 @@ class AIBIN:
 				raise PyMSError('Parameter', 'Unknown  resource type %s' % data)
 			v = pair[1]
 		return [1,v]
+
+	reveal_types = [
+		('RevealFog', 0),
+	]
+
+	def ai_reveal_type(self, data, stage=0):
+		"""reveal_type        - Reveal or RevealFog"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.reveal_types if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for reveal type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.reveal_types if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown  reveal type %s' % data)
+			v = pair[1]
+		return [1,v]
+
 
 	def interpret(self, files, defs=None, extra=False):
 		if not isinstance(files, list):
