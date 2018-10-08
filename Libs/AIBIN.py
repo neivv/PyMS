@@ -294,7 +294,7 @@ class AIBIN:
 		'FillBunkers',
 		'Ping',
 		'RevealArea',
-
+		'TechAvail',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -443,6 +443,7 @@ class AIBIN:
 		'load_bunkers', #0x8f,
 		'ping', #0x90,
 		'reveal_area', #0x91,
+		'tech_avail', #0x92
 	]
 
 	wait_commands = [
@@ -685,7 +686,9 @@ class AIBIN:
 			#ping
 			[self.ai_word,self.ai_word,self.ai_byte],
 			#reveal_area
-			[self.ai_byte,self.ai_area,self.ai_word,self.ai_reveal_type]
+			[self.ai_byte,self.ai_area,self.ai_word,self.ai_reveal_type],
+			#tech_avail
+			[self.ai_byte, self.ai_compare_trig, self.ai_technology, self.ai_byte, self.ai_address],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
