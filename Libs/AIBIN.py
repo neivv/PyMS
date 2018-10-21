@@ -484,6 +484,7 @@ class AIBIN:
 		self.aiinfo = {}
 		self.warnings = None
 		self.bwscript = None
+		self.large_script = False
 		self.warnings = []
 		self.order_names = aibin_orders.names
 		self.order_name_to_id = aibin_orders.name_to_id
@@ -516,11 +517,11 @@ class AIBIN:
 		self._casters = None # Used during interpreting
 		self.parameters = [
 			[self.ai_address], # goto
-			[self.ai_unit,self.ai_address], # notowns_jump
+			[self.ai_unit,self.ai_short_address], # notowns_jump
 			[self.ai_word], # wait
 			None, # start_town
 			None, # start_areatown
-			[self.ai_byte, self.ai_address], # expand
+			[self.ai_byte, self.ai_short_address], # expand
 			[self.ai_byte, self.ai_building, self.ai_byte], # build
 			[self.ai_byte, self.ai_upgrade, self.ai_byte], # upgrade
 			[self.ai_technology,self.ai_byte], # tech
@@ -554,7 +555,7 @@ class AIBIN:
 			None, # stop
 			None, # switch_rescue
 			None, # move_dt
-			[self.ai_address,self.ai_string], # debug
+			[self.ai_short_address,self.ai_string], # debug
 			None, # fatal_error
 			None, # enter_bunker
 			None, # value_area
@@ -563,8 +564,8 @@ class AIBIN:
 			[self.ai_byte], # nuke_rate
 			[self.ai_word], # max_force
 			None, # clear_combatdata
-			[self.ai_byte, self.ai_address], # random_jump
-			[self.ai_byte, self.ai_address], # time_jump
+			[self.ai_byte, self.ai_short_address], # random_jump
+			[self.ai_byte, self.ai_short_address], # time_jump
 			None, # farms_notiming
 			None, # farms_timing
 			None, # build_turrets
@@ -572,23 +573,23 @@ class AIBIN:
 			None, # default_build
 			[self.ai_word], # harass_factor
 			None, # start_campaign
-			[self.ai_address, self.ai_address, self.ai_address], # race_jump
-			[self.ai_byte, self.ai_address], # region_size
+			[self.ai_short_address, self.ai_short_address, self.ai_short_address], # race_jump
+			[self.ai_byte, self.ai_short_address], # region_size
 			[self.ai_byte], # get_oldpeons
-			[self.ai_address], # groundmap_jump
+			[self.ai_short_address], # groundmap_jump
 			[self.ai_unit, self.ai_byte], # place_guard
 			[self.ai_byte, self.ai_military], # wait_force
 			[self.ai_military], # guard_resources
-			[self.ai_address], # call
+			[self.ai_short_address], # call
 			None, # return
-			[self.ai_address], # eval_harass
+			[self.ai_short_address], # eval_harass
 			[self.ai_byte], # creep
-			[self.ai_address], # panic
+			[self.ai_short_address], # panic
 			[self.ai_byte,self.ai_building], # player_need
 			[self.ai_byte, self.ai_military], # do_morph
 			None, # wait_upgrades
-			[self.ai_address], # multirun
-			[self.ai_byte, self.ai_address], # rush
+			[self.ai_short_address], # multirun
+			[self.ai_byte, self.ai_short_address], # rush
 			[self.ai_military], # scout_with
 			[self.ai_byte, self.ai_unit], # define_max
 			[self.ai_byte, self.ai_military], # train
@@ -599,7 +600,7 @@ class AIBIN:
 			None, # make_patrol
 			None, # give_money
 			[self.ai_byte, self.ai_byte, self.ai_military], # prep_down
-			[self.ai_word, self.ai_word, self.ai_address], # resources_jump
+			[self.ai_word, self.ai_word, self.ai_short_address], # resources_jump
 			None, # enter_transport
 			None, # exit_transport
 			[self.ai_byte], # sharedvision_on
@@ -608,9 +609,9 @@ class AIBIN:
 			None, # harass_location
 			None, # implode
 			None, # guard_all
-			[self.ai_unit, self.ai_address], # enemyowns_jump
-			[self.ai_word, self.ai_word, self.ai_address], # enemyresources_jump
-			[self.ai_compare, self.ai_byte, self.ai_address], # if_dif
+			[self.ai_unit, self.ai_short_address], # enemyowns_jump
+			[self.ai_word, self.ai_word, self.ai_short_address], # enemyresources_jump
+			[self.ai_compare, self.ai_byte, self.ai_short_address], # if_dif
 			[self.ai_byte, self.ai_military], # easy_attack
 			None, # kill_thread
 			None, # killable
@@ -621,13 +622,13 @@ class AIBIN:
 			None, # disruption_web
 			None, # recall_location
 			[self.ai_dword], # set_randomseed
-			[self.ai_unit,self.ai_address], # if_owned
+			[self.ai_unit,self.ai_short_address], # if_owned
 			None, # create_nuke
 			[self.ai_unit, self.ai_word, self.ai_word], # create_unit
 			[self.ai_word, self.ai_word], # nuke_pos
 			None, # help_iftrouble
-			[self.ai_byte, self.ai_address], # allies_watch
-			[self.ai_byte, self.ai_address], # try_townpoint
+			[self.ai_byte, self.ai_short_address], # allies_watch
+			[self.ai_byte, self.ai_short_address], # try_townpoint
 			[self.ai_point, self.ai_point], # attack_to
 			[self.ai_dword], # attack_timeout
 			[self.ai_order, self.ai_word, self.ai_unit_or_group,
@@ -694,7 +695,7 @@ class AIBIN:
 			#tech_avail
 			[self.ai_byte, self.ai_compare_trig, self.ai_technology, self.ai_byte, self.ai_address],
 			#remove_creep
-			[self.ai_area]
+			[self.ai_area],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -777,6 +778,11 @@ class AIBIN:
 		data = load_file(file, 'aiscript.bin')
 		try:
 			offset = struct.unpack('<L', data[:4])[0]
+			# ais = id -> (pos, name, flags, [commands], [offsets])
+			# commands is a list for each command, [id, param1, param2, ...] as integers,
+			# params are decoded with param_fn stage 0
+			# offsets is a list of forwards jumps, if only a single integer, it is index to
+			# script's local commands (`cmdoffsets`), for external jumps it is [id, command index]
 			ais = odict()
 			aisizes = {}
 			varinfo = odict()
@@ -784,6 +790,7 @@ class AIBIN:
 			aioffsets = []
 			offsets = [offset]
 			warnings = []
+			self.large_script = offset >= 0x10000
 			while data[offset:offset+4] != '\x00\x00\x00\x00':
 				id,loc,string,flags = struct.unpack('<4s3L', data[offset:offset+16])
 				if id in ais:
@@ -809,24 +816,46 @@ class AIBIN:
 			offset += 4
 			offsets.sort()
 			try:
-				externaljumps = [[{},{}],[dict(self.bwscript.externaljumps[1][0]),dict(self.bwscript.externaljumps[1][1])]]
+				externaljumps = [
+					[{},{}],
+					[dict(self.bwscript.externaljumps[1][0]),dict(self.bwscript.externaljumps[1][1])],
+				]
 			except:
 				externaljumps = [[{},{}],[{},{}]]
 			totaloffsets = {}
+			# pos -> [(id, index in ais[id][4] cmd, index in cmd)]
+			# Jumps that were forward in script, outside script's local area
 			findtotaloffsets = {}
 			checknones = []
+			stubs = {}
+			if self.large_script:
+				# Read any stub jumps before first script
+				pos = 4
+				first_script_pos = aioffsets[0][1]
+				while pos < first_script_pos:
+					assert data[pos] == '\x00'
+					long_dest, = struct.unpack_from('<L', data, pos + 1)
+					stubs[pos] = long_dest
+					pos += 5
+			# Go through every script
 			for id,loc,string,flags in aioffsets:
 				ais[id] = [loc,string,flags,[],[]]
 				if loc:
 					curdata = data[loc:offsets[offsets.index(loc)+1]]
 					curoffset = 0
+					# Offsets that have been already processed for the script
+					# (Relative to script's start)
 					cmdoffsets = []
+					# pos -> [(index in ais[id][4] cmd, index in cmd)]
+					# Jumps forward in script, inside script's local area
 					findoffset = {}
 					while curoffset < len(curdata):
 						if curoffset+loc in findtotaloffsets:
+							# This pos was jumped to from before, fixup the jumps..?
 							for fo in findtotaloffsets[curoffset+loc]:
 								ais[fo[0]][4][fo[1]] = [id,len(cmdoffsets)]
 								fo[2][fo[3]] = [id,len(cmdoffsets)]
+								# Also add a local reference to current script, why?
 								ais[id][4].append(len(cmdoffsets))
 								if not id in externaljumps[0][0]:
 									externaljumps[0][0][id] = {}
@@ -839,6 +868,7 @@ class AIBIN:
 									externaljumps[0][1][fo[0]].append(id)
 							del findtotaloffsets[curoffset+loc]
 						if curoffset in findoffset:
+							# Local forwards jump fixup
 							for fo in findoffset[curoffset]:
 								ais[id][4][fo[0]] = len(cmdoffsets)
 								fo[1][fo[2]] = len(cmdoffsets)
@@ -854,12 +884,14 @@ class AIBIN:
 						ai = [cmd]
 						if self.parameters[cmd]:
 							for p in self.parameters[cmd]:
-								d = p(curdata[curoffset:])
-								if p == self.ai_address:
-									if d[1] < loc:
-										if d[1] not in totaloffsets:
+								size, param_data = p(curdata[curoffset:], 0)
+								if self.is_address(p):
+									if param_data in stubs:
+										param_data = stubs[param_data]
+									if param_data < loc:
+										if param_data not in totaloffsets:
 											raise PyMSError('Load','Incorrect jump location, it could possibly be a corrupt aiscript.bin')
-										tos = totaloffsets[d[1]]
+										tos = totaloffsets[param_data]
 										ais[id][4].append(tos)
 										ai.append(tos)
 										# print tos
@@ -873,29 +905,30 @@ class AIBIN:
 											externaljumps[0][1][id] = []
 										if not tos[0] in externaljumps[0][1][id]:
 											externaljumps[0][1][id].append(tos[0])
-									elif d[1] >= offsets[offsets.index(loc)+1]:
-										if not d[1] in findtotaloffsets:
-											findtotaloffsets[d[1]] = []
-										findtotaloffsets[d[1]].append([id,len(ais[id][4]),ai,len(ai)])
+									elif param_data >= offsets[offsets.index(loc)+1]:
+										if not param_data in findtotaloffsets:
+											findtotaloffsets[param_data] = []
+										findtotaloffsets[param_data].append([id,len(ais[id][4]),ai,len(ai)])
 										ais[id][4].append(None)
 										ai.append(None)
-									elif d[1] - loc in cmdoffsets:
-										pos = cmdoffsets.index(d[1] - loc)
+									elif param_data - loc in cmdoffsets:
+										pos = cmdoffsets.index(param_data - loc)
 										ais[id][4].append(pos)
 										ai.append(pos)
 									else:
-										if not d[1] - loc in findoffset:
-											findoffset[d[1] - loc] = []
-										findoffset[d[1] - loc].append([len(ais[id][4]),ai,len(ai)])
+										if not param_data - loc in findoffset:
+											findoffset[param_data - loc] = []
+										findoffset[param_data - loc].append([len(ais[id][4]),ai,len(ai)])
 										ais[id][4].append(None)
 										ai.append(None)
 								else:
-									ai.append(d[1])
-								curoffset += d[0]
+									ai.append(param_data)
+								curoffset += size
 						ais[id][3].append(ai)
 					aisizes[id] = curoffset
 					if None in ais[id][4]:
 						checknones.append(id)
+			# Validate that all forwards jumps were found
 			for c in checknones:
 				if None in ais[id][4]:
 					raise PyMSError('Load','Incorrect jump location, could possibly be a corrupt aiscript.bin')
@@ -906,6 +939,7 @@ class AIBIN:
   #LN
   #<0>
 #<0>
+			# If there's something after the script table, it is pyai extensions
 			if offset < len(data):
 				def getstr(dat,o):
 					i = dat[o:].index('\x00')
@@ -1036,10 +1070,20 @@ class AIBIN:
 				raise PyMSError('Parameter',"Invalid dword value '%s', it must be a number in the range 0 to 4294967295" % data)
 		return [4,v]
 
+	def is_address(self, val):
+		return val == self.ai_address or val == self.ai_short_address
+
 	def ai_address(self, data, stage=0):
 		"""block       - The block label name (Can not be used as a variable type!)"""
-		if stage == 1:
-			return [2,data]
+		assert stage != 1 and stage != 3
+		if self.large_script:
+			return self.ai_dword(data, stage)
+		else:
+			return self.ai_word(data, stage)
+
+	def ai_short_address(self, data, stage=0):
+		"""block       - The block label name (Can not be used as a variable type!)"""
+		assert stage != 1 and stage != 3
 		return self.ai_word(data, stage)
 
 	def ai_unit(self, data, stage=0):
@@ -2180,12 +2224,14 @@ class AIBIN:
 						else:
 							raise PyMSError('External Definition','Invalid syntax, unknown line format',n,l, warnings=warnings)
 			loaded.append(deffile)
+
 		if defs:
 			if isstr(defs):
 				defs = defs.split(',')
 
 			for deffile in defs:
 				load_defs(deffile)
+
 		for data in alldata:
 			for n,l in enumerate(data):
 				if len(l) > 1:
@@ -2226,7 +2272,8 @@ class AIBIN:
 							if match:
 								load_defs(match.group(1))
 								continue
-							match = re.match('\\A(\\S+)\\s+(\\S+)\\s+=\\s+(.+?)(?:\\s*\\{(.+)\\})?\\Z', line)
+							# match "type name += dat {vinfo}
+							match = re.match(r'\A(\S+)\s+(\S+)\s+=\s+(.+?)(?:\s*\{(.+)\})?\Z', line)
 							if match:
 								t,name,dat,vinfo = match.groups()
 								if re.match('[\x00,(){}]',name):
@@ -2259,8 +2306,10 @@ class AIBIN:
 								else:
 									nextinfo = [2,varinfo[name]]
 								continue
-							if re.match('\\A[^(]+\\([^)]+\\):\\s*(?:\\{.+\\})?\\Z', line):
-								newai = re.match('\\A(.+)\\(\s*(.+)\s*,\s*(.+)\s*,\s*(\w+)\s*\\):\\s*(?:\\{(.+)\\})?\\Z', line)
+							# Match 'anything(anything): {comment}'
+							# (Script start), e.g. Ter3(1052, 111, aiscript):
+							if re.match(r'\A[^(]+\([^)]+\):\s*(?:\{.+\})?\Z', line):
+								newai = re.match(r'\A(.+)\(\s*(.+)\s*,\s*(.+)\s*,\s*(\w+)\s*\):\s*(?:\{(.+)\})?\Z', line)
 								if not newai:
 									raise PyMSError('Interpreting','Invalid syntax, expected a new script header',n,line, warnings=warnings)
 								id = newai.group(1).encode('ascii', 'ignore')
@@ -2339,7 +2388,8 @@ class AIBIN:
 								cmdn = 0
 								continue
 							if ai:
-								match = re.match('\\A(.+?)\\(\\s*(.+)?\\s*\\)\\Z', line)
+								# cmd(args)
+								match = re.match(r'\A(.+?)\(\s*(.+)?\s*\)\Z', line)
 								if match:
 									cmd = match.group(1).lower()
 									if cmd in self.labels:
@@ -2385,9 +2435,12 @@ class AIBIN:
 									aisize += 1
 									if params and dat:
 										for d,p in zip(dat,params):
-											if p == self.ai_address:
+											if self.is_address(p):
 												# Parse script parameter which jumps to a label
-												aisize += 2
+												if ai[1]:
+													aisize += (2 if not self.large_script else 4)
+												else:
+													aisize += (2 if not self.bwscript.large_script else 4)
 												match = re.match('\\A(.+):(.+)\\Z', d)
 												if match:
 													# Full label
@@ -2585,12 +2638,6 @@ class AIBIN:
 			i = findtotaljumps.peek()
 			l = i[1].peek()
 			raise PyMSError('Interpreting',"The external jump '%s:%s' in AI script '%s' jumps to an AI script that was not found while interpreting (you must include the scripts for all external jumps)" % (i[0],l[0],l[1][0][4]), warnings=warnings)
-		s = 2+sum(aisizes.values())
-		if s > 65535:
-			raise PyMSError('Interpreting',"There is not enough room in your aiscript.bin to compile these changes. The current file is %sB out of the max 65535B, these changes would make the file %sB." % (2+sum(self.aisizes.values()),s))
-		s = 2+sum(bwsizes.values())
-		if s > 65535:
-			raise PyMSError('Interpreting',"There is not enough room in your bwscript.bin to compile these changes. The current file is %sB out of the max 65535B, these changes would make the file %sB." % (2+sum(self.bwsizes.values()),s))
 		if findgoto:
 			remove = [{},{}]
 			for i in findgoto.iteritems():
@@ -2846,35 +2893,36 @@ class AIBIN:
 								f.write(', ')
 							else:
 								comma = True
-							temp = t(p,1)
-							if t == self.ai_address:
-								if type(temp[1]) == list:
-									if temp[1][0] in extjumps and temp[1][1] in extjumps[temp[1][0]]:
-										f.write('%s:%s' % (temp[1][0],extjumps[temp[1][0]][temp[1][1]]))
+							if self.is_address(t):
+								dest = p
+								if type(dest) == list:
+									if dest[0] in extjumps and dest[1] in extjumps[dest[0]]:
+										f.write('%s:%s' % (dest[0],extjumps[dest[0]][dest[1]]))
 									else:
-										if not temp[1][0] in extjumps:
-											extjumps[temp[1][0]] = {}
+										if not dest[0] in extjumps:
+											extjumps[dest[0]] = {}
 										if labelnames:
 											t = self.aiinfo[id][2][gotonum]
 											n = t.split(':',1)
 											f.write(t)
-											extjumps[n[0]][temp[1][1]] = n[1]
+											extjumps[n[0]][dest[1]] = n[1]
 										else:
-											n = '%s %04d' % (temp[1][0],len(extjumps[temp[1][0]]))
-											f.write('%s:%s' % (temp[1][0],n))
-											extjumps[temp[1][0]][temp[1][1]] = n
-								elif temp[1] in jump:
-									f.write(jump[temp[1]])
+											n = '%s %04d' % (dest[0],len(extjumps[dest[0]]))
+											f.write('%s:%s' % (dest[0],n))
+											extjumps[dest[0]][dest[1]] = n
+								elif dest in jump:
+									f.write(jump[dest])
 								else:
 									if labelnames:
-										jump[temp[1]] = self.aiinfo[id][2][gotonum]
+										jump[dest] = self.aiinfo[id][2][gotonum]
 									else:
-										jump[temp[1]] = '%s %04d' % (id,j)
-									f.write(jump[temp[1]])
+										jump[dest] = '%s %04d' % (id,j)
+									f.write(jump[dest])
 									j += 1
 								if labelnames:
 									gotonum += 1
 							else:
+								temp = t(p,1)
 								for vt in self.typescanbe[t.__doc__.split(' ',1)[0]]:
 									vtype = vt.__doc__.split(' ',1)[0]
 									if vtype in values and p in values[vtype]:
@@ -2894,6 +2942,14 @@ class AIBIN:
 				if w:
 					warnings.extend(w)
 		f.close()
+		return warnings
+
+	def compile_large_script(self, file, bwscript, extra):
+		self.large_script = True
+		warnings = self.compile(file, bwscript, extra)
+		warning = PyMSWarning('Compile', 'The script is larger than 65536 bytes, using it '\
+			'in StarCraft will require a plugin')
+		warnings.append(warning)
 		return warnings
 
 	def compile(self, file, bwscript=None, extra=False):
@@ -2921,7 +2977,9 @@ class AIBIN:
 						for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
 							try:
 								if t == self.ai_address:
-									offset += t(0,2)[0]
+									offset += (4 if self.large_script else 2)
+								elif t == self.ai_short_address:
+									offset += 2
 								else:
 									offset += t(p,2)[0]
 							except PyMSWarning, e:
@@ -2930,7 +2988,37 @@ class AIBIN:
 								offset += e.extra[0]
 					cmdn += 1
 					offset += 1
+		if offset >= 0x10000 and not self.large_script:
+			# Can't compile this, redo as large
+			return self.compile_large_script(f, bwscript, extra)
+
+		# Create goto(x) stubs for any 16-bit jump,
+		# they are placed before first script in file.
+		stubs = odict()
+		for id in self.ais.keys():
+			loc,string,flags,ai,jumps = self.ais[id]
+			if loc:
+				for cmd in ai:
+					if self.parameters[cmd[0]]:
+						for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
+								if t == self.ai_short_address:
+									if self.large_script:
+										if type(p) == list:
+											dest = totaloffsets[p[0]][p[1]]
+										else:
+											dest = totaloffsets[id][p]
+										if not dest in stubs:
+											stubs[dest] = len(stubs)
+		for k, offsets in totaloffsets.iteritems():
+			for key in offsets.iterkeys():
+				offsets[key] += len(stubs) * 5
+		old_stubs = stubs
+		stubs = odict()
+		for k, v in old_stubs.iteritems():
+			stubs[k + len(old_stubs) * 5] = v
+
 		offset = 4
+		offset += len(stubs) * 5
 		for id in self.ais.keys():
 			loc,string,flags,ai,jumps = self.ais[id]
 			if loc:
@@ -2940,11 +3028,15 @@ class AIBIN:
 					if self.parameters[cmd[0]]:
 						for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
 							try:
-								if t == self.ai_address:
+								if self.is_address(t):
 									if type(p) == list:
-										d = t(totaloffsets[p[0]][p[1]],2)
+										dest = totaloffsets[p[0]][p[1]]
 									else:
-										d = t(totaloffsets[id][p],2)
+										dest = totaloffsets[id][p]
+									if t == self.ai_short_address and self.large_script:
+										d = [2, struct.pack('<H', 4 + stubs[dest] * 5)]
+									else:
+										d = t(dest, 2)
 								else:
 									d = t(p,2)
 							except PyMSWarning, e:
@@ -2958,7 +3050,22 @@ class AIBIN:
 					offset += 1
 			else:
 				table += struct.pack('<4s3L', id, 0, string+1, flags)
-		f.write('%s%s%s\x00\x00\x00\x00' % (struct.pack('<L', offset),ais,table))
+		if offset >= 0x10000 and not self.large_script:
+			return self.compile_large_script(f, bwscript, extra)
+		elif offset < 0x10000 and self.large_script:
+			# Redo
+			self.large_script = False
+			warnings = self.compile(f, bwscript, extra)
+			warning = PyMSWarning('Compile', 'The script is no longer too large to be used with '\
+				'vanilla StarCraft, converting back to original format')
+			warnings.append(warning)
+			return warnings
+
+		stub_data = ''
+		for long_dest in stubs.iterkeys():
+			stub_data += ('\x00' + struct.pack('<L', long_dest))
+
+		f.write('%s%s%s%s\x00\x00\x00\x00' % (struct.pack('<L', offset),stub_data, ais,table))
 		if extra and (self.varinfo or self.aiinfo):
 			info = ''
 			for var,dat in self.varinfo.iteritems():
@@ -2981,7 +3088,7 @@ class AIBIN:
 			f.write(compress(info + '\x00',9))
 		f.close()
 		if bwscript:
-			self.bwscript.compile(bwscript, extra)
+			warnings += self.bwscript.compile(bwscript, extra)
 		return warnings
 
 class BWBIN(AIBIN):
@@ -2995,6 +3102,7 @@ class BWBIN(AIBIN):
 			ais = odict()
 			aisizes = {}
 			aiinfo = {}
+			self.large_script = offset >= 0x10000
 			aioffsets = []
 			offsets = [offset]
 			while data[offset:offset+4] != '\x00\x00\x00\x00':
@@ -3012,6 +3120,16 @@ class BWBIN(AIBIN):
 			totaloffsets = {}
 			findtotaloffsets = {}
 			checknones = []
+			stubs = {}
+			if self.large_script:
+				# Read any stub jumps before first script
+				pos = 4
+				first_script_pos = aioffsets[0][1]
+				while pos < first_script_pos:
+					assert data[pos] == '\x00'
+					long_dest, = struct.unpack_from('<L', data, pos + 1)
+					stubs[pos] = long_dest
+					pos += 5
 			for id,loc in aioffsets:
 				ais[id] = [loc,[],[]]
 				if loc:
@@ -3050,8 +3168,10 @@ class BWBIN(AIBIN):
 						ai = [cmd]
 						if self.parameters[cmd]:
 							for p in self.parameters[cmd]:
-								d = p(curdata[curoffset:])
-								if p == self.ai_address:
+								d = p(curdata[curoffset:], 0)
+								if self.is_address(p):
+									if d[1] in stubs:
+										d[1] = stubs[d[1]]
 									if d[1] < loc:
 										if d[1] not in totaloffsets:
 											raise PyMSError('Load','Incorrect jump location, could possibly be a corrupt bwscript.bin')
@@ -3215,35 +3335,36 @@ class BWBIN(AIBIN):
 							f.write(', ')
 						else:
 							comma = True
-						temp = t(p,1)
-						if t == self.ai_address:
-							if type(temp[1]) == list:
-								if temp[1][0] in extjumps and temp[1][1] in extjumps[temp[1][0]]:
-									f.write('%s:%s' % (temp[1][0],extjumps[temp[1][0]][temp[1][1]]))
+						if self.is_address(t):
+							dest = p
+							if type(dest) == list:
+								if dest[0] in extjumps and dest[1] in extjumps[dest[0]]:
+									f.write('%s:%s' % (dest[0],extjumps[dest[0]][dest[1]]))
 								else:
-									if not temp[1][0] in extjumps:
-										extjumps[temp[1][0]] = {}
+									if not dest[0] in extjumps:
+										extjumps[dest[0]] = {}
 									if labelnames:
 										t = self.aiinfo[id][2][gotonum]
 										n = t.split(':',1)
 										f.write(t)
-										extjumps[n[0]][temp[1][1]] = n[1]
+										extjumps[n[0]][dest[1]] = n[1]
 									else:
-										n = '%s %04d' % (temp[1][0],len(extjumps[temp[1][0]]))
-										f.write('%s:%s' % (temp[1][0],n))
-										extjumps[temp[1][0]][temp[1][1]] = n
-							elif temp[1] in jump:
-								f.write(jump[temp[1]])
+										n = '%s %04d' % (dest[0],len(extjumps[dest[0]]))
+										f.write('%s:%s' % (dest[0],n))
+										extjumps[dest[0]][dest[1]] = n
+							elif dest in jump:
+								f.write(jump[dest])
 							else:
 								if labelnames:
-									jump[temp[1]] = self.aiinfo[id][2][gotonum]
+									jump[dest] = self.aiinfo[id][2][gotonum]
 								else:
-									jump[temp[1]] = '%s %04d' % (id,j)
-								f.write(jump[temp[1]])
+									jump[dest] = '%s %04d' % (id,j)
+								f.write(jump[dest])
 								j += 1
 							if labelnames:
 								gotonum += 1
 						else:
+							temp = t(p,1)
 							for vt in self.typescanbe[t.__doc__.split(' ',1)[0]]:
 								vtype = vt.__doc__.split(' ',1)[0]
 								if vtype in values and p in values[vtype]:
@@ -3256,6 +3377,14 @@ class BWBIN(AIBIN):
 			f.write('\n')
 		if close:
 			f.close()
+		return warnings
+
+	def compile_large_script(self, file, extra):
+		self.large_script = True
+		warnings = self.compile(file, extra)
+		warning = PyMSWarning('Compile', 'The script is larger than 65536 bytes, using it '\
+			'in StarCraft will require a plugin')
+		warnings.append(warning)
 		return warnings
 
 	def compile(self, file, extra=False):
@@ -3281,15 +3410,45 @@ class BWBIN(AIBIN):
 						for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
 							try:
 								if t == self.ai_address:
-									offset += t(0,1)[0]
+									offset += (4 if self.large_script else 2)
+								elif t == self.ai_short_address:
+									offset += 2
 								else:
-									offset += t(p,1)[0]
+									offset += t(p,2)[0]
 							except PyMSWarning, e:
 								if not warnings:
 									warnings.append(e)
 					cmdn += 1
 					offset += 1
+		if offset >= 0x10000 and not self.large_script:
+			# Can't compile this, redo as large
+			return self.compile_large_script(f, extra)
+
+		stubs = odict()
+		for id in self.ais.keys():
+			loc,ai,jumps = self.ais[id]
+			if loc:
+				for cmd in ai:
+					if self.parameters[cmd[0]]:
+						for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
+								if t == self.ai_short_address:
+									if self.large_script:
+										if type(p) == list:
+											dest = totaloffsets[p[0]][p[1]]
+										else:
+											dest = totaloffsets[id][p]
+										if not dest in stubs:
+											stubs[dest] = len(stubs)
+		for k, offsets in totaloffsets.iteritems():
+			for key in offsets.iterkeys():
+				offsets[key] += len(stubs) * 5
+		old_stubs = stubs
+		stubs = odict()
+		for k, v in old_stubs.iteritems():
+			stubs[k + len(old_stubs) * 5] = v
+
 		offset = 4
+		offset += len(stubs) * 5
 		for id in self.ais.keys():
 			loc,ai,jumps = self.ais[id]
 			table += struct.pack('<4sL', id, offset)
@@ -3298,11 +3457,15 @@ class BWBIN(AIBIN):
 				if self.parameters[cmd[0]]:
 					for p,t in zip(cmd[1:],self.parameters[cmd[0]]):
 						try:
-							if t == self.ai_address:
+							if self.is_address(t):
 								if type(p) == list:
-									d = t(totaloffsets[p[0]][p[1]],2)
+									dest = totaloffsets[p[0]][p[1]]
 								else:
-									d = t(totaloffsets[id][p],2)
+									dest = totaloffsets[id][p]
+								if t == self.ai_short_address and self.large_script:
+									d = [2, struct.pack('<H', 4 + stubs[dest] * 5)]
+								else:
+									d = t(dest, 2)
 							else:
 								d = t(p,2)
 							ais += d[1]
@@ -3311,7 +3474,22 @@ class BWBIN(AIBIN):
 							if not warnings:
 								warnings.append(e)
 				offset += 1
-		f.write('%s%s%s\x00\x00\x00\x00' % (struct.pack('<L', offset),ais,table))
+		if offset >= 0x10000 and not self.large_script:
+			return self.compile_large_script(f, extra)
+		elif offset < 0x10000 and self.large_script:
+			# Redo
+			self.large_script = False
+			warnings = self.compile(f, bwscript, extra)
+			warning = PyMSWarning('Compile', 'The script is no longer too large to be used with '\
+				'vanilla StarCraft, converting back to original format')
+			warnings.append(warning)
+			return warnings
+
+		stub_data = ''
+		for long_dest in stubs.iterkeys():
+			stub_data += ('\x00' + struct.pack('<L', long_dest))
+
+		f.write('%s%s%s%s\x00\x00\x00\x00' % (struct.pack('<L', offset),stub_data, ais,table))
 		if extra and self.aiinfo:
 			info = ''
 			for ai,dat in self.aiinfo.iteritems():
