@@ -3019,6 +3019,8 @@ class AIBIN:
 
 		offset = 4
 		offset += len(stubs) * 5
+		if offset >= 0x10000:
+			raise PyMSError('Compile', 'The script is too large')
 		for id in self.ais.keys():
 			loc,string,flags,ai,jumps = self.ais[id]
 			if loc:
@@ -3449,6 +3451,8 @@ class BWBIN(AIBIN):
 
 		offset = 4
 		offset += len(stubs) * 5
+		if offset >= 0x10000:
+			raise PyMSError('Compile', 'The script is too large')
 		for id in self.ais.keys():
 			loc,ai,jumps = self.ais[id]
 			table += struct.pack('<4sL', id, offset)
