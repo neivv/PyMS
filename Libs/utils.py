@@ -148,7 +148,7 @@ def fit(label, text, width=80, end=False, indent=0):
 					indent = True
 				r += l
 				r += '\n'
-	return r.rstrip('\n') + '\n' if end else ''
+	return r.rstrip('\n') + ('\n' if end else '')
 
 def removedir(path):
 	if os.path.exists(path):
@@ -1546,7 +1546,7 @@ class AtomicWriter:
 		self.real_file = path
 		self.handle = None
 		self.temp_file = None
-		
+
 		if os.path.isfile(path):
 			temp_file = create_temp_file(path, createmode=createmode)
 			if encoding:
