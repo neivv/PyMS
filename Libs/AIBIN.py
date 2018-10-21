@@ -142,6 +142,8 @@ aicontrol_names = {
 	0x1: 'dont_wait_request_resources',
 	0x2: 'build_gas',
 	0x3: 'dont_build_gas',
+	0x4: 'retaliation',
+	0x5: 'no_retaliation',
 }
 
 aicontrol_names_rev = dict((v.lower(), k) for k, v in aicontrol_names.iteritems())
