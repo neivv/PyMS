@@ -298,6 +298,9 @@ class AIBIN:
 		'RevealArea',
 		'TechAvail',
 		'RemoveCreep',
+		'SaveBank',
+		'LoadBank',
+		'BankData',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -448,6 +451,9 @@ class AIBIN:
 		'reveal_area', #0x91,
 		'tech_avail', #0x92,
 		'remove_creep', #0x93,
+		'save_bank', #0x94,
+		'load_bank', #0x95,
+		'bank_data', #0x96,
 	]
 
 	wait_commands = [
@@ -696,6 +702,12 @@ class AIBIN:
 			[self.ai_byte, self.ai_compare_trig, self.ai_technology, self.ai_byte, self.ai_address],
 			#remove_creep
 			[self.ai_area],
+			#save_bank
+			[self.ai_string],
+			#load_bank
+			[self.ai_string],
+			#bank_data
+			[self.ai_compare_trig,self.ai_string,self.ai_string,self.ai_dword,self.ai_address],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
