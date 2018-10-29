@@ -300,6 +300,8 @@ class AIBIN:
 		'RemoveCreep',
 		'SaveBank',
 		'LoadBank',
+		'BankDataOld',
+		'UnitNameCommand',
 		'BankData',
 	]
 	short_labels = [
@@ -453,7 +455,9 @@ class AIBIN:
 		'remove_creep', #0x93,
 		'save_bank', #0x94,
 		'load_bank', #0x95,
-		'bank_data', #0x96,
+		'bank_data_old', #0x96,
+		'unit_name', #0x97,
+		'bank_data', #0x98
 	]
 
 	wait_commands = [
@@ -706,8 +710,12 @@ class AIBIN:
 			[self.ai_string],
 			#load_bank
 			[self.ai_string],
-			#bank_data
+			#bank_data_old
 			[self.ai_compare_trig,self.ai_string,self.ai_string,self.ai_dword,self.ai_address],
+			#unit_name
+			[self.ai_byte, self.ai_unit, self.ai_area, self.ai_string, self.ai_layout_action],
+			#bank_data
+			[self.ai_compare_trig,self.ai_dword,self.ai_string,self.ai_string,self.ai_address],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
