@@ -305,6 +305,7 @@ class AIBIN:
 		'BankDataOld',
 		'UnitNameCommand',
 		'BankData',
+		'LiftLand',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -459,7 +460,8 @@ class AIBIN:
 		'load_bank', #0x95,
 		'bank_data_old', #0x96,
 		'unit_name', #0x97,
-		'bank_data', #0x98
+		'bank_data', #0x98,
+		'lift_land', #0x99,
 	]
 
 	wait_commands = [
@@ -718,6 +720,8 @@ class AIBIN:
 			[self.ai_byte, self.ai_unit, self.ai_area, self.ai_string, self.ai_layout_action],
 			#bank_data
 			[self.ai_compare_trig,self.ai_dword,self.ai_string,self.ai_string,self.ai_address],
+			#lift_land
+			[self.ai_unit,self.ai_byte,self.ai_area,self.ai_area,self.ai_byte,self.ai_byte,self.ai_byte],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
