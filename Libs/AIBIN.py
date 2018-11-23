@@ -306,6 +306,7 @@ class AIBIN:
 		'UnitNameCommand',
 		'BankData',
 		'LiftLand',
+		'Queue',
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -462,6 +463,7 @@ class AIBIN:
 		'unit_name', #0x97,
 		'bank_data', #0x98,
 		'lift_land', #0x99,
+		'queue', #0x9a,
 	]
 
 	wait_commands = [
@@ -722,6 +724,8 @@ class AIBIN:
 			[self.ai_compare_trig,self.ai_dword,self.ai_string,self.ai_string,self.ai_address],
 			#lift_land
 			[self.ai_unit,self.ai_byte,self.ai_area,self.ai_area,self.ai_byte,self.ai_byte,self.ai_byte],
+			#queue
+			[self.ai_byte,self.ai_unit,self.ai_unit,self.ai_byte,self.ai_queue_flag,self.ai_area,self.ai_byte],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -749,6 +753,7 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'layout_action':[self.ai_layout_action],
+			'queue_flags':[self.ai_queue_flag],
 			'availability':[self.ai_avail],
 			'bool_compare''':[self.ai_bool_compare],
 			'supply_type':[self.ai_supply],
@@ -783,6 +788,7 @@ class AIBIN:
 			'compare_trig':[self.ai_compare_trig],
 			'race':[self.ai_race],
 			'layout_action':[self.ai_layout_action],
+			'queue_flags':[self.ai_queue_flag],
 			'availability':[self.ai_avail],
 			'bool_compare':[self.ai_bool_compare],
 			'supply_type':[self.ai_supply],
@@ -1956,6 +1962,29 @@ class AIBIN:
 			v = chr(data)
 		else:
 			pair = next((x for x in self.layout_actions if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown action %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	queue_flags = [
+		('Local', 0),
+		('Global', 1),
+	]
+
+	def ai_queue_flag(self, data, stage=0):
+		"""queue_flags        - Local or Global"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.queue_flags if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for layout action' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.queue_flags if x[0] == data), None)
 			if pair is None:
 				raise PyMSError('Parameter', 'Unknown action %s' % data)
 			v = pair[1]
