@@ -307,6 +307,9 @@ class AIBIN:
 		'BankData',
 		'LiftLand',
 		'Queue',
+		'AiseDebug',
+		'ReplaceUnit',
+		'Defense'
 	]
 	short_labels = [
 		'goto',               #0x00 - 0
@@ -464,6 +467,9 @@ class AIBIN:
 		'bank_data', #0x98,
 		'lift_land', #0x99,
 		'queue', #0x9a,
+		'aise_debug', #0x9b,
+		'replace_unit', #0x9c,
+		'defense', #0x9d
 	]
 
 	wait_commands = [
@@ -726,6 +732,12 @@ class AIBIN:
 			[self.ai_unit,self.ai_byte,self.ai_area,self.ai_area,self.ai_byte,self.ai_byte,self.ai_byte],
 			#queue
 			[self.ai_byte,self.ai_unit,self.ai_unit,self.ai_byte,self.ai_queue_flag,self.ai_area,self.ai_byte],
+			#aise_debug
+			[self.ai_string],
+			#replace_unit
+			[self.ai_unit,self.ai_unit],
+			#defense_command
+			[self.ai_word,self.ai_unit,self.ai_defense_type,self.ai_defense_direction,self.ai_defense_direction],
 		]
 		self.builds = []
 		for c in [6,19,20,21,22,69]:
@@ -760,6 +772,8 @@ class AIBIN:
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
 			'reveal_type':[self.ai_reveal_type],
+			'defense_type':[self.ai_defense_type],
+			'defense_direction':[self.ai_defense_direction],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -795,6 +809,8 @@ class AIBIN:
 			'time_type':[self.ai_time_type],
 			'resource':[self.ai_resource_type],
 			'reveal_type':[self.ai_reveal_type],
+			'defense_type':[self.ai_defense_type],
+			'defense_direction':[self.ai_defense_direction],
 			'order':[self.ai_order],
 			'area':[self.ai_area],
 			'point':[self.ai_point],
@@ -2110,6 +2126,51 @@ class AIBIN:
 			v = pair[1]
 		return [1,v]
 
+	defense_types = [
+		('Build', 0),
+		('Use', 1),
+	]
+
+	defense_dirs = [
+		('Ground', 0),
+		('Air', 1),
+	]
+
+	def ai_defense_type(self, data, stage=0):
+		"""defense_type        - Use or Build"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.defense_types if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for defense type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.defense_types if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown  defense type %s' % data)
+			v = pair[1]
+		return [1,v]
+
+	def ai_defense_direction(self, data, stage=0):
+		"""defense_direction        - Ground or Air"""
+		if not stage:
+			v = ord(data[0])
+		elif stage == 1:
+			pair = next((x for x in self.defense_dirs if x[1] == data), None)
+			if pair is None:
+				raise PyMSError('Decompile', 'Unexpected value %d for reveal type' % data)
+			v = pair[0]
+		elif stage == 2:
+			v = chr(data)
+		else:
+			pair = next((x for x in self.defense_dirs if x[0] == data), None)
+			if pair is None:
+				raise PyMSError('Parameter', 'Unknown  reveal type %s' % data)
+			v = pair[1]
+		return [1,v]
 
 	def interpret(self, files, defs=None, extra=False):
 		if not isinstance(files, list):
