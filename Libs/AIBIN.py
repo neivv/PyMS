@@ -3513,6 +3513,7 @@ class BWBIN(AIBIN):
 				raise PyMSError('Compile',"Could not load file '%s'" % file)
 		else:
 			f = file
+		warnings = []
 		ais = ''
 		table = ''
 		offset = 4
