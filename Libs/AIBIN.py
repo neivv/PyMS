@@ -3,7 +3,7 @@ from fileutils import *
 import aibin_orders
 import TBL, DAT
 
-import struct, re, os, sys
+import struct, re, os, sys, traceback
 from math import log, floor
 from zlib import compress, decompress
 
@@ -1137,19 +1137,22 @@ class AIBIN:
 	def ai_unit(self, data, stage=0):
 		"""unit        - A unit ID from 0 to 227, or a full unit name from stat_txt.tbl"""
 		if not stage:
-			v = ord(data[0])
+			v, = struct.unpack('<H', data[:2])
 		elif stage == 1:
-			s = self.tbl.strings[data].split('\x00')
-			if s[1] != '*':
-				v = TBL.decompile_string('\x00'.join(s[:2]), '\x0A\x28\x29\x2C')
+			if data < DAT.UnitsDAT.count:
+				s = self.tbl.strings[data].split('\x00')
+				if s[1] != '*':
+					v = TBL.decompile_string('\x00'.join(s[:2]), '\x0A\x28\x29\x2C')
+				else:
+					v = TBL.decompile_string(s[0], '\x0A\x28\x29\x2C')
 			else:
-				v = TBL.decompile_string(s[0], '\x0A\x28\x29\x2C')
+				v = str(data)
 		elif stage == 2:
-			v = chr(data) + '\x00'
+			v = struct.pack('<H', data)
 		else:
 			try:
 				v = int(data)
-				if -1 > v or v > DAT.UnitsDAT.count:
+				if v < 0:
 					raise
 			except:
 				for i,name in enumerate(self.tbl.strings[:DAT.UnitsDAT.count]):
@@ -1744,77 +1747,48 @@ class AIBIN:
 	def ai_building(self, data, stage=0):
 		"""building    - Same as unit type, but only units that are Buildings, Resource Miners, and Overlords"""
 		v = self.ai_unit(data, stage)
-		if stage == 3:
-			flags = self.unitsdat.get_value(v[1],'SpecialAbilityFlags')
-			if not flags & 8 and not flags & 1 and v[1] != 42:
-				raise PyMSWarning('Parameter','Unit is not a building, worker, or Overlord', extra=v, level=1, id='building')
 		return v
 
 	def ai_military(self, data, stage=0):
 		"""military    - Same as unit type, but only military units (not Buildings)"""
 		v = self.ai_unit(data, stage)
-		if stage == 3:
-			flags = self.unitsdat.get_value(v[1],'SpecialAbilityFlags')
-			if flags & 1:
-				raise PyMSWarning('Parameter','Unit is a building', extra=v, level=1, id='military')
 		return v
 
 	def ai_ggmilitary(self, data, stage=0):
 		"""gg_military - Same as Military type, but only for defending against an enemy Ground unit attacking your Ground unit"""
 		v = self.ai_military(data, stage)
-		if stage == 3:
-			subunit = self.unitsdat.get_value(v[1],'Subunit1')
-			if self.unitsdat.get_value(v[1],'GroundWeapon') == 130 and not self.unitsdat.get_value(v[1],'AttackUnit') in [53,59] \
-					and (subunit in [None,228] or (self.unitsdat.get_value(subunit,'GroundWeapon') == 130 and not self.unitsdat.get_value(subunit,'AttackUnit') in [53,59])) \
-					and (not self._casters or not v[1] in self._casters):
-				raise PyMSWarning('Parameter','Unit has no ground weapon, and is not marked as a @spellcaster', extra=v, level=1, id='gg_military')
 		return v
 
 	def ai_agmilitary(self, data, stage=0):
 		"""ag_military - Same as Military type, but only for defending against an enemy Air unit attacking your Ground unit"""
 		v = self.ai_military(data, stage)
-		if stage == 3:
-			subunit = self.unitsdat.get_value(v[1],'Subunit1')
-			if self.unitsdat.get_value(v[1],'AirWeapon') == 130 and self.unitsdat.get_value(v[1],'AttackUnit') != 53 \
-					and (subunit in [None,228] or (self.unitsdat.get_value(subunit,'AirWeapon') == 130 and self.unitsdat.get_value(subunit,'AttackUnit') != 53)) \
-					and (not self._casters or not v[1] in self._casters):
-				raise PyMSWarning('Parameter','Unit has no air weapon, and is not marked as a @spellcaster', extra=v, level=1, id='ag_military')
 		return v
 
 	def ai_gamilitary(self, data, stage=0):
 		"""ga_military - Same as Military type, but only for defending against an enemy Ground unit attacking your Air unit"""
 		v = self.ai_military(data, stage)
-		if stage == 3:
-			subunit = self.unitsdat.get_value(v[1],'Subunit1')
-			if self.unitsdat.get_value(v[1],'GroundWeapon') == 130 and not self.unitsdat.get_value(v[1],'AttackUnit') in [53,59] \
-					and (subunit in [None,228] or (self.unitsdat.get_value(subunit,'GroundWeapon') == 130 and not self.unitsdat.get_value(subunit,'AttackUnit') in [53,59])) \
-					and (not self._casters or not v[1] in self._casters):
-				raise PyMSWarning('Parameter','Unit has no ground weapon, and is not marked as a @spellcaster', extra=v, level=1, id='ga_military')
 		return v
 
 	def ai_aamilitary(self, data, stage=0):
 		"""aa_military - Same as Military type, but only for defending against an enemy Air unit attacking your Air unit"""
 		v = self.ai_military(data, stage)
-		if stage == 3:
-			subunit = self.unitsdat.get_value(v[1],'Subunit1')
-			if self.unitsdat.get_value(v[1],'AirWeapon') == 130 and self.unitsdat.get_value(v[1],'AttackUnit') != 53 \
-					and (subunit in [None,228] or (self.unitsdat.get_value(subunit,'AirWeapon') == 130 and not self.unitsdat.get_value(subunit,'AttackUnit') != 53)) \
-					and (not self._casters or not v[1] in self._casters):
-				raise PyMSWarning('Parameter','Unit has no air weapon, and is not marked as a @spellcaster', extra=v, level=1, id='aa_military')
 		return v
 
 	def ai_upgrade(self, data, stage=0):
 		"""upgrade     - An upgrade ID from 0 to 60, or a full upgrade name from stat_txt.tbl"""
 		if not stage:
-			v = ord(data[0])
+			v, = struct.unpack('<H', data[:2])
 		elif stage == 1:
-			v = TBL.decompile_string(self.tbl.strings[self.upgradesdat.get_value(data,'Label') - 1].split('\x00',1)[0].strip(), '\x0A\x28\x29\x2C')
+			if data < DAT.UpgradesDAT.count:
+				v = TBL.decompile_string(self.tbl.strings[self.upgradesdat.get_value(data,'Label') - 1].split('\x00',1)[0].strip(), '\x0A\x28\x29\x2C')
+			else:
+				v = str(data)
 		elif stage == 2:
-			v = chr(data) + '\x00'
+			v = struct.pack('<H', data)
 		else:
 			try:
 				v = int(data)
-				if -1 > v or v > DAT.UpgradesDAT.count:
+				if v < 0:
 					raise
 			except:
 				for i in range(len(self.upgradesdat.entries)):
@@ -1828,15 +1802,18 @@ class AIBIN:
 	def ai_technology(self, data, stage=0):
 		"""technology  - An technology ID from 0 to 43, or a full technology name from stat_txt.tbl"""
 		if not stage:
-			v = ord(data[0])
+			v, = struct.unpack('<H', data[:2])
 		elif stage == 1:
-			v = TBL.decompile_string(self.tbl.strings[self.techdat.get_value(data,'Label') - 1].split('\x00',1)[0].strip(), '\x0A\x28\x29\x2C')
+			if data < DAT.TechDAT.count:
+				v = TBL.decompile_string(self.tbl.strings[self.techdat.get_value(data,'Label') - 1].split('\x00',1)[0].strip(), '\x0A\x28\x29\x2C')
+			else:
+				v = str(data)
 		elif stage == 2:
-			v = chr(data) + '\x00'
+			v = struct.pack('<H', data)
 		else:
 			try:
 				v = int(data)
-				if -1 > v or v > DAT.TechDAT.count:
+				if v < 0:
 					raise
 			except:
 				for i in range(len(self.techdat.entries)):
@@ -2286,7 +2263,7 @@ class AIBIN:
 				raise e
 			except Exception, e:
 				raise PyMSError('Parameter',"Invalid parameter data '%s', looking for type '%s'.\nDetails: %s" %
-						(d,parse_fn.__doc__.split(' ',1)[0], e),n,line, warnings=warnings)
+						(d,parse_fn.__doc__.split(' ',1)[0], traceback.format_exc()),n,line, warnings=warnings)
 		def load_defs(defname):
 			try:
 				deffile = os.path.join(os.path.dirname(files[0]),defname)
